@@ -1,0 +1,35 @@
+apply plugin: 'elasticsearch.esplugin'
+
+esplugin {
+    name 'scheduler-sample-client'
+    description 'Sample plugin that extends OpenDistro for Elasticserach Job Scheduler Plugin'
+    classname 'com.amazon.opendistro.jobscheduler.sampleclient.ClientPlugin'
+    extendedPlugins = ['opendistro-job-scheduler']
+}
+
+ext {
+    projectSubstitutions = [:]
+    licenseFile = rootProject.file('LICENSE.txt')
+    noticeFile = rootProject.file('NOTICE.txt')
+}
+
+dependencies {
+    compileOnly project(":${rootProject.name}-spi")
+}
+
+test.enabled = false
+integTestRunner.enabled = false
+
+/*
+integTestRunner {
+    // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
+    systemProperty 'tests.security.manager', 'false'
+    // TODO: FIXME
+    ifNoTests 'ignore'
+}
+*/
+
+integTestCluster {
+    module rootProject
+}
+

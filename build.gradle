@@ -1,0 +1,83 @@
+/*
+ *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License").
+ *   You may not use this file except in compliance with the License.
+ *   A copy of the License is located at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   or in the "license" file accompanying this file. This file is distributed
+ *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *   express or implied. See the License for the specific language governing
+ *   permissions and limitations under the License.
+ */
+
+buildscript {
+    ext {
+        es_version = System.getProperty("es.version", "6.5.4")
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.elasticsearch.gradle:build-tools:${es_version}"
+    }
+}
+
+plugins {
+    id 'java-library'
+}
+apply plugin: 'elasticsearch.esplugin'
+
+ext {
+    projectSubstitutions = [:]
+    licenseFile = rootProject.file('LICENSE.txt')
+    noticeFile = rootProject.file('NOTICE')
+}
+
+// TODO: enable
+licenseHeaders.enabled = true
+namingConventions.enabled = false
+forbiddenApis.ignoreFailures = false
+
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
+forbiddenApisTest.ignoreFailures = true
+
+esplugin {
+    name 'opendistro-job-scheduler'
+    description 'Open Distro for Elasticsearch job schduler plugin'
+    classname 'com.amazon.opendistro.jobscheduler.JobSchedulerPlugin'
+}
+
+
+integTestRunner {
+    // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
+    systemProperty 'tests.security.manager', 'false'
+    // TODO: FIXME
+    ifNoTests 'ignore'
+}
+
+
+allprojects {
+    group = 'com.amazon.opendistro.jobscheduler'
+    version = "${version}"
+
+    apply from: "$rootDir/build-tools/repositories.gradle"
+
+    boolean snapshot = "true".equals(System.getProperty("build.snapshot", "true"));
+    if (snapshot) {
+        version += "-SNAPSHOT"
+    }
+
+    plugins.withId('java') {
+        sourceCompatibility = targetCompatibility = "1.8"
+    }
+}
+
+dependencies {
+    compile project(":${rootProject.name}-spi")
+}

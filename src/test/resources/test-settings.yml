@@ -1,0 +1,5 @@
+opendistro.scheduled_jobs.request_timeout: 10
+opendistro.scheduled_jobs.sweeper.backoff_millis: 50
+opendistro.scheduled_jobs.retry_count: 3
+opendistro.scheduled_jobs.sweeper.period: 5,
+opendistro.scheduled_jobs.sweeper.page_size: 100
