@@ -30,6 +30,12 @@ buildscript {
 plugins {
     id 'java-library'
 }
+
+ext {
+    opendistroVersion = '0.7.0'
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+}
+
 apply plugin: 'elasticsearch.esplugin'
 
 ext {
@@ -63,8 +69,8 @@ integTestRunner {
 
 
 allprojects {
-    group = 'com.amazon.opendistro.jobscheduler'
-    version = "${version}"
+    group = 'com.amazon.opendistroforelasticsearch'
+    version = "${opendistroVersion}.0"
 
     apply from: "$rootDir/build-tools/repositories.gradle"
 
