@@ -71,7 +71,7 @@ import java.util.Map;
 import java.util.Set;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class JobSweeperTest extends ESAllocationTestCase {
+public class JobSweeperTests extends ESAllocationTestCase {
 
     private Client client;
     private ClusterService clusterService;

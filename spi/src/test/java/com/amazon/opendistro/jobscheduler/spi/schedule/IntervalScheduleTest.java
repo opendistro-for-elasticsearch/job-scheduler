@@ -34,10 +34,11 @@ import java.time.temporal.ChronoUnit;
 public class IntervalScheduleTest {
 
     private IntervalSchedule intervalSchedule;
+    private Instant startTime;
 
     @Before
     public void setup() throws ParseException {
-        Instant startTime = new SimpleDateFormat("MM/dd/yyyy").parse("01/01/2019").toInstant();
+        startTime = new SimpleDateFormat("MM/dd/yyyy").parse("01/01/2019").toInstant();
         this.intervalSchedule = new IntervalSchedule(startTime, 1, ChronoUnit.MINUTES);
     }
 
@@ -131,7 +132,8 @@ public class IntervalScheduleTest {
 
     @Test
     public void testToXContent() throws IOException {
-        String xContentJsonStr = "{\"interval\":{\"start_time\":1546329600000,\"period\":1,\"unit\":\"Minutes\"}}";
+        long epochMillis = this.startTime.toEpochMilli();
+        String xContentJsonStr = "{\"interval\":{\"start_time\":" + epochMillis + ",\"period\":1,\"unit\":\"Minutes\"}}";
                 XContentHelper.toXContent(this.intervalSchedule, XContentType.JSON, false)
                 .utf8ToString();
         Assert.assertEquals(xContentJsonStr, XContentHelper.toXContent(this.intervalSchedule, XContentType.JSON, false)

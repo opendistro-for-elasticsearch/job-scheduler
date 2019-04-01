@@ -39,7 +39,7 @@ import java.util.concurrent.ScheduledFuture;
 
 @RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class JobSchedulerTest {
+public class JobSchedulerTests {
     @Mock
     private ThreadPool threadPool;
 
