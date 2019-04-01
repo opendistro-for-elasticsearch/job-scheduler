@@ -14,7 +14,7 @@ ext {
 }
 
 dependencies {
-    compileOnly project(":${rootProject.name}-spi")
+    compileOnly project(path: ":${rootProject.name}-spi", configuration: 'shadow')
 }
 
 test.enabled = false

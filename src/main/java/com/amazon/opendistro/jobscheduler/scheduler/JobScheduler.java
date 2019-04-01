@@ -17,7 +17,7 @@ package com.amazon.opendistro.jobscheduler.scheduler;
 
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobRunner;
-import com.cronutils.utils.VisibleForTesting;
+import com.amazon.opendistro.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.unit.TimeValue;

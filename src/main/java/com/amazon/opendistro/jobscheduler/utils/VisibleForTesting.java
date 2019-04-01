@@ -13,20 +13,7 @@
  *   permissions and limitations under the License.
  */
 
-plugins {
-    id 'com.github.johnrengelman.shadow'
-    id 'java-library'
-}
+package com.amazon.opendistro.jobscheduler.utils;
 
-dependencies {
-    compileOnly "org.elasticsearch:elasticsearch:${es_version}"
-    compile "com.cronutils:cron-utils:7.0.5"
-
-    testImplementation "org.elasticsearch.test:framework:${es_version}"
-    testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
-}
-
-shadowJar {
-    relocate 'com.cronutils', 'com.amazon.opendistro.jobscheduler.repackage.com.cronutils'
-    relocate 'org.slf4j', 'com.amazon.opendistro.jobscheduler.repackage.org.slf4j' // dependency of cron-utils
+public @interface VisibleForTesting {
 }

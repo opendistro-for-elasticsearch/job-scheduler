@@ -85,5 +85,5 @@ allprojects {
 }
 
 dependencies {
-    compile project(":${rootProject.name}-spi")
+    compile project(path: ":${rootProject.name}-spi", configuration: 'shadow')
 }
