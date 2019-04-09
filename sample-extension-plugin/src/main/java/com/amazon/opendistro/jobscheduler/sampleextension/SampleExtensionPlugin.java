@@ -16,7 +16,7 @@
 package com.amazon.opendistro.jobscheduler.sampleextension;
 
 import com.amazon.opendistro.jobscheduler.spi.JobSchedulerExtension;
-import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParameter;
+import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParser;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistro.jobscheduler.spi.schedule.ScheduleParser;
 import org.apache.logging.log4j.LogManager;
@@ -25,7 +25,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -90,8 +89,8 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
     }
 
     @Override
-    public CheckedFunction<XContentParser, ScheduledJobParameter, IOException> getParserFunction() {
-        return parser -> {
+    public ScheduledJobParser getJobParser() {
+        return (parser, id, version) -> {
             SampleJobParameter jobParameter = new SampleJobParameter();
             XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser::getTokenLocation);
 
@@ -105,8 +104,8 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
                     case SampleJobParameter.ENABLED_FILED:
                         jobParameter.setEnabled(parser.booleanValue());
                         break;
-                    case SampleJobParameter.ENABLE_TIME_FILED:
-                        jobParameter.setEnableTime(parseInstantValue(parser));
+                    case SampleJobParameter.ENABLED_TIME_FILED:
+                        jobParameter.setEnabledTime(parseInstantValue(parser));
                         break;
                     case SampleJobParameter.LAST_UPDATE_TIME_FIELD:
                         jobParameter.setLastUpdateTime(parseInstantValue(parser));

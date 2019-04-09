@@ -15,6 +15,7 @@
 
 package com.amazon.opendistro.jobscheduler.scheduler;
 
+import com.amazon.opendistro.jobscheduler.spi.JobExecutionContext;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistro.jobscheduler.utils.VisibleForTesting;
@@ -99,18 +100,6 @@ public class JobScheduler {
     }
 
     public boolean deschedule(String indexName, String id) {
-        /*
-        StringBuilder sb = new StringBuilder();
-        sb.append("Deschedule being called, stacktrace:\n");
-        for(StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
-            sb.append(stackTraceElement.getClassName()).append("\t")
-                    .append(stackTraceElement.getFileName()).append(":")
-                    .append(stackTraceElement.getLineNumber()).append("\t")
-                    .append(stackTraceElement.getMethodName()).append("\n");
-        }
-        log.info(sb.toString());
-        */
-
         JobSchedulingInfo jobInfo = this.scheduledJobInfo.getJobInfo(indexName, id);
         if (jobInfo == null) {
             log.debug("JobId {} doesn't not exist, skip descheduling.", id);
@@ -136,7 +125,7 @@ public class JobScheduler {
 
     @VisibleForTesting
     boolean reschedule(ScheduledJobParameter jobParameter, JobSchedulingInfo jobInfo, ScheduledJobRunner jobRunner) {
-        if (jobParameter.getEnableTime() == null) { // TODO: consider moving enableTime to jobInfo
+        if (jobParameter.getEnabledTime() == null) { // TODO: consider moving enableTime to jobInfo
             log.info("There is no enable time of job {}, this job should never be scheduled.",
                     jobParameter.getName());
             return false;
@@ -160,8 +149,9 @@ public class JobScheduler {
 
             this.reschedule(jobParameter, jobInfo, jobRunner);
 
-            // TODO: catch all exceptions
-            jobRunner.runJob(jobParameter);
+            JobExecutionContext context = new JobExecutionContext();
+            context.setExpectedExecutionTime(jobInfo.getExpectedPreviousExecutionTime());
+            jobRunner.runJob(jobParameter, context);
         };
 
         // TODO: jobInfo.isDescheduled or jobParameter.isDescheduled ?

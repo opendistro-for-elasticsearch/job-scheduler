@@ -19,6 +19,7 @@ import com.amazon.opendistro.jobscheduler.JobSchedulerSettings;
 import com.amazon.opendistro.jobscheduler.ScheduledJobProvider;
 import com.amazon.opendistro.jobscheduler.scheduler.JobScheduler;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParameter;
+import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParser;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobRunner;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.util.BytesRef;
@@ -36,15 +37,12 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.CheckedFunction;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.ParseContext;
@@ -79,7 +77,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
     private ThreadPool threadPool;
     private JobScheduler scheduler;
     private Settings settings;
-    private CheckedFunction<XContentParser, ScheduledJobParameter, IOException> jobParser;
+    private ScheduledJobParser jobParser;
     private ScheduledJobRunner jobRunner;
 
     private JobSweeper sweeper;
@@ -92,12 +90,12 @@ public class JobSweeperTests extends ESAllocationTestCase {
         this.threadPool = Mockito.mock(ThreadPool.class);
         this.scheduler = Mockito.mock(JobScheduler.class);
         this.jobRunner = Mockito.mock(ScheduledJobRunner.class);
-        this.jobParser = Mockito.mock(CheckedFunction.class);
+        this.jobParser = Mockito.mock(ScheduledJobParser.class);
 
-        NamedXContentRegistry.Entry xContentRegistryEntry = new NamedXContentRegistry.Entry(ScheduledJobParameter.class,
-                new ParseField("JOB_TYPE"), this.jobParser);
+        // NamedXContentRegistry.Entry xContentRegistryEntry = new NamedXContentRegistry.Entry(ScheduledJobParameter.class,
+        //         new ParseField("JOB_TYPE"), this.jobParser);
         List<NamedXContentRegistry.Entry> namedXContentRegistryEntries = new ArrayList<>();
-        namedXContentRegistryEntries.add(xContentRegistryEntry);
+        // namedXContentRegistryEntries.add(xContentRegistryEntry);
         this.xContentRegistry = new NamedXContentRegistry(namedXContentRegistryEntries);
 
         this.settings = Settings.builder().build();
@@ -249,7 +247,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         ScheduledJobParameter mockJobParameter = Mockito.mock(ScheduledJobParameter.class);
         Mockito.when(mockJobParameter.isEnabled()).thenReturn(true);
-        Mockito.when(this.jobParser.apply(Mockito.any())).thenReturn(mockJobParameter);
+        Mockito.when(this.jobParser.parse(Mockito.any(), Mockito.anyString(), Mockito.anyLong())).thenReturn(mockJobParameter);
 
         this.sweeper.sweep(shardId, "id", 2L, this.getTestJsonSource());
         Mockito.verify(this.scheduler).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any());

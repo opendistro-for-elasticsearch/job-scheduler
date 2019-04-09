@@ -16,12 +16,11 @@
 package com.amazon.opendistro.jobscheduler.sampleclient;
 
 import com.amazon.opendistro.jobscheduler.spi.JobSchedulerExtension;
-import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParameter;
+import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParser;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistro.jobscheduler.spi.schedule.ScheduleParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParserUtils;
 import org.elasticsearch.plugins.Plugin;
@@ -44,14 +43,14 @@ public class ClientPlugin extends Plugin implements JobSchedulerExtension {
 
     @Override
     public ScheduledJobRunner getJobRunner() {
-        return job -> {
+        return (job, context) -> {
             log.info("SampleClient runner invoked.");
         };
     }
 
     @Override
-    public CheckedFunction<XContentParser, ScheduledJobParameter, IOException> getParserFunction() {
-        return parser -> {
+    public ScheduledJobParser getJobParser() {
+        return (parser, id, version) -> {
             SampleJobParameter jobParameter = new SampleJobParameter();
             XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser::getTokenLocation);
 

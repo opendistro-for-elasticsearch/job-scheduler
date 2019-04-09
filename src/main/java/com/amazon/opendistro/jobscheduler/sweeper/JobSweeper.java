@@ -225,8 +225,11 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                     ScheduledJobProvider provider = this.indexToProviders.get(shardId.getIndexName());
                     XContentParser parser = XContentHelper.createParser(this.xContentRegistry, LoggingDeprecationHandler.INSTANCE,
                             jobSource, XContentType.JSON);
-                    ScheduledJobParameter jobParameter = this.xContentRegistry.parseNamedObject(ScheduledJobParameter.class,
-                            provider.getJobType(), parser, null);
+                    ScheduledJobParameter jobParameter = provider.getJobParser().parse(parser, docId, newVersion);
+                    if (jobParameter == null) {
+                        // allow parser to return null, which means this is not a scheduled job document.
+                        return null;
+                    }
                     ScheduledJobRunner jobRunner = this.indexToProviders.get(shardId.getIndexName()).getJobRunner();
                     if (jobParameter.isEnabled()) {
                         this.scheduler.schedule(shardId.getIndexName(), docId, jobParameter, jobRunner);
@@ -355,22 +358,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                 return;
             }
             for (SearchHit hit: response.getHits()) {
-                BytesReference jobSource = hit.getSourceRef();
-                ScheduledJobProvider provider = this.indexToProviders.get(shardId.getIndexName());
                 String jobId = hit.getId();
-                try {
-                    XContentParser parser = XContentHelper.createParser(this.xContentRegistry, LoggingDeprecationHandler.INSTANCE,
-                            jobSource, XContentType.JSON);
-                    ScheduledJobParameter jobParameter = this.xContentRegistry.parseNamedObject(ScheduledJobParameter.class,
-                            provider.getJobType(), parser, null);
-                    // TODO: consider remove id field in parameter interface
-                    //       have this field different than ES document id may cause confusions.
-                    //       Or, only use id field in the parameters, do not use ES doc id anywhere
-                    // jobId = jobParameter.getJobId();
-                } catch (Exception e) {
-                    log.error("Failed parsing job {}", jobSource.utf8ToString());
-                    continue;
-                }
                 if(shardNodes.isOwningNode(jobId)) {
                     this.sweep(shardId, jobId, hit.getVersion(), hit.getSourceRef());
                 }

@@ -34,13 +34,13 @@ public class SampleJobParameter implements ScheduledJobParameter {
     public static final String ENABLED_FILED = "enabled";
     public static final String LAST_UPDATE_TIME_FIELD = "last_update_time";
     public static final String SCHEDULE_FIELD = "schedule";
-    public static final String ENABLE_TIME_FILED = "enable_time";
+    public static final String ENABLED_TIME_FILED = "enable_time";
     public static final String INDEX_NAME_FIELD = "index_name_to_watch";
 
     // private String jobId;
     private String jobName;
     private Instant lastUpdateTime;
-    private Instant enableTime;
+    private Instant enabledTime;
     private boolean isEnabled;
     private Schedule schedule;
     private String indexToWatch;
@@ -56,16 +56,9 @@ public class SampleJobParameter implements ScheduledJobParameter {
 
         Instant now = Instant.now();
         this.isEnabled = true;
-        this.enableTime = now;
+        this.enabledTime = now;
         this.lastUpdateTime = now;
     }
-
-    /*
-    @Override
-    public String getJobId() {
-        return this.jobId;
-    }
-    */
 
     @Override
     public String getName() {
@@ -78,8 +71,8 @@ public class SampleJobParameter implements ScheduledJobParameter {
     }
 
     @Override
-    public Instant getEnableTime() {
-        return this.enableTime;
+    public Instant getEnabledTime() {
+        return this.enabledTime;
     }
 
     @Override
@@ -96,12 +89,6 @@ public class SampleJobParameter implements ScheduledJobParameter {
         return this.indexToWatch;
     }
 
-    /*
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
-    }
-    */
-
     public void setJobName(String jobName) {
         this.jobName = jobName;
     }
@@ -110,8 +97,8 @@ public class SampleJobParameter implements ScheduledJobParameter {
         this.lastUpdateTime = lastUpdateTime;
     }
 
-    public void setEnableTime(Instant enableTime) {
-        this.enableTime = enableTime;
+    public void setEnabledTime(Instant enabledTime) {
+        this.enabledTime = enabledTime;
     }
 
     public void setEnabled(boolean enabled) {
@@ -129,13 +116,12 @@ public class SampleJobParameter implements ScheduledJobParameter {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder//.field(ID_FIELD, this.jobId)
-                .field(NAME_FIELD, this.jobName)
+        builder.field(NAME_FIELD, this.jobName)
                 .field(ENABLED_FILED, this.isEnabled)
                 .field(SCHEDULE_FIELD, this.schedule)
                 .field(INDEX_NAME_FIELD, this.indexToWatch);
-        if(this.enableTime != null) {
-            builder.timeField(ENABLE_TIME_FILED, ENABLE_TIME_FILED, this.enableTime.toEpochMilli());
+        if(this.enabledTime != null) {
+            builder.timeField(ENABLED_TIME_FILED, ENABLED_TIME_FILED, this.enabledTime.toEpochMilli());
         }
         if(this.lastUpdateTime != null) {
             builder.timeField(LAST_UPDATE_TIME_FIELD, LAST_UPDATE_TIME_FIELD, this.lastUpdateTime.toEpochMilli());

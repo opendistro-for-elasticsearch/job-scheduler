@@ -15,17 +15,13 @@
 
 package com.amazon.opendistro.jobscheduler;
 
-import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParameter;
+import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParser;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobRunner;
-import org.elasticsearch.common.CheckedFunction;
-import org.elasticsearch.common.xcontent.XContentParser;
-
-import java.io.IOException;
 
 public class ScheduledJobProvider {
     private String jobType;
     private String jobIndexName;
-    private CheckedFunction<XContentParser, ScheduledJobParameter, IOException> jobParser;
+    private ScheduledJobParser jobParser;
     private ScheduledJobRunner jobRunner;
 
     public String getJobType() {
@@ -36,7 +32,7 @@ public class ScheduledJobProvider {
         return jobIndexName;
     }
 
-    public CheckedFunction<XContentParser, ScheduledJobParameter, IOException> getJobParser() {
+    public ScheduledJobParser getJobParser() {
         return jobParser;
     }
 
@@ -44,9 +40,7 @@ public class ScheduledJobProvider {
         return jobRunner;
     }
 
-    public ScheduledJobProvider(String jobType, String jobIndexName,
-                                CheckedFunction<XContentParser, ScheduledJobParameter, IOException> jobParser,
-                                ScheduledJobRunner jobRunner) {
+    public ScheduledJobProvider(String jobType, String jobIndexName, ScheduledJobParser jobParser, ScheduledJobRunner jobRunner) {
         this.jobType = jobType;
         this.jobIndexName = jobIndexName;
         this.jobParser = jobParser;

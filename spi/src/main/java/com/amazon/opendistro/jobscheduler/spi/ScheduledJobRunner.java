@@ -16,5 +16,5 @@
 package com.amazon.opendistro.jobscheduler.spi;
 
 public interface ScheduledJobRunner {
-    void runJob(ScheduledJobParameter job);
+    void runJob(ScheduledJobParameter job, JobExecutionContext context);
 }

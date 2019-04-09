@@ -249,7 +249,7 @@ public class JobSchedulerTests {
             }
 
             @Override
-            public Instant getEnableTime() {
+            public Instant getEnabledTime() {
                 return enableTime;
             }
 

@@ -24,5 +24,6 @@ public interface JobSchedulerExtension {
     String getJobType();
     String getJobIndex();
     ScheduledJobRunner getJobRunner();
-    CheckedFunction<XContentParser, ScheduledJobParameter, IOException> getParserFunction();
+    // CheckedFunction<XContentParser, ScheduledJobParameter, IOException> getParserFunction();
+    ScheduledJobParser getJobParser();
 }

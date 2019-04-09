@@ -15,6 +15,7 @@
 
 package com.amazon.opendistro.jobscheduler.sampleextension;
 
+import com.amazon.opendistro.jobscheduler.spi.JobExecutionContext;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobRunner;
 import org.apache.logging.log4j.LogManager;
@@ -70,7 +71,7 @@ public class SampleJobRunner implements ScheduledJobRunner {
 
 
     @Override
-    public void runJob(ScheduledJobParameter jobParameter) {
+    public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
         if(!(jobParameter instanceof SampleJobParameter)) {
             throw new IllegalStateException("Job parameter is not instance of SampleJobParameter, type: "
                     + jobParameter.getClass().getCanonicalName());

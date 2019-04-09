@@ -17,7 +17,7 @@ package com.amazon.opendistro.jobscheduler;
 
 import com.amazon.opendistro.jobscheduler.scheduler.JobScheduler;
 import com.amazon.opendistro.jobscheduler.spi.JobSchedulerExtension;
-import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParameter;
+import com.amazon.opendistro.jobscheduler.spi.ScheduledJobParser;
 import com.amazon.opendistro.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistro.jobscheduler.spi.schedule.Schedule;
 import com.amazon.opendistro.jobscheduler.spi.schedule.ScheduleParser;
@@ -26,13 +26,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexModule;
@@ -44,7 +42,6 @@ import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.watcher.ResourceWatcherService;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -113,7 +110,7 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin, Acti
         for (JobSchedulerExtension extension : ServiceLoader.load(JobSchedulerExtension.class, loader)) {
             String jobType = extension.getJobType();
             String jobIndexName = extension.getJobIndex();
-            CheckedFunction<XContentParser, ScheduledJobParameter, IOException> jobParser = extension.getParserFunction();
+            ScheduledJobParser jobParser = extension.getJobParser();
             ScheduledJobRunner runner = extension.getJobRunner();
             if(this.indexToJobProviders.containsKey(jobIndexName)) {
                 // TODO: log something?
@@ -137,15 +134,6 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin, Acti
                 ScheduleParser::parse);
         registryEntries.add(scheduleEntry);
 
-        // register extension types
-        for(Map.Entry<String, ScheduledJobProvider> providerEntry : this.indexToJobProviders.entrySet()) {
-            NamedXContentRegistry.Entry registryEntry = new NamedXContentRegistry.Entry(
-                    ScheduledJobParameter.class,
-                    new ParseField(providerEntry.getValue().getJobType()),
-                    providerEntry.getValue().getJobParser()
-            );
-            registryEntries.add(registryEntry);
-        }
         return registryEntries;
     }
 

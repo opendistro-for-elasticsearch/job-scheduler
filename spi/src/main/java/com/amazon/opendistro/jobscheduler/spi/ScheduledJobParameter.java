@@ -21,10 +21,9 @@ import org.elasticsearch.common.xcontent.ToXContentObject;
 import java.time.Instant;
 
 public interface ScheduledJobParameter extends ToXContentObject {
-    // String getJobId();
     String getName();
     Instant getLastUpdateTime(); // TODO: consider removing this method
-    Instant getEnableTime();
+    Instant getEnabledTime();
     Schedule getSchedue();
     boolean isEnabled();
 }

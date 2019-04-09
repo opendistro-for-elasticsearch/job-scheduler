@@ -65,7 +65,7 @@ public class SampleJobParameter implements ScheduledJobParameter {
     }
 
     @Override
-    public Instant getEnableTime() {
+    public Instant getEnabledTime() {
         return this.enableTime;
     }
 
