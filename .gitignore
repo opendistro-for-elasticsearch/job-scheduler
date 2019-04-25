@@ -1,0 +1,7 @@
+.idea
+*.iml
+.gradle
+out
+local-test
+build
+.local-*
