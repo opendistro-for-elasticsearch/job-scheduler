@@ -1,0 +1,133 @@
+/*
+ *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License").
+ *   You may not use this file except in compliance with the License.
+ *   A copy of the License is located at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   or in the "license" file accompanying this file. This file is distributed
+ *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *   express or implied. See the License for the specific language governing
+ *   permissions and limitations under the License.
+ */
+
+buildscript {
+    ext {
+        es_version = System.getProperty("es.version", "6.7.1")
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.elasticsearch.gradle:build-tools:${es_version}"
+    }
+}
+
+plugins {
+    id 'nebula.ospackage' version "5.3.0"
+    id 'java-library'
+}
+
+ext {
+    opendistroVersion = "${version}"
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+}
+
+apply plugin: 'elasticsearch.esplugin'
+
+ext {
+    projectSubstitutions = [:]
+    licenseFile = rootProject.file('LICENSE.txt')
+    noticeFile = rootProject.file('NOTICE')
+}
+
+// TODO: enable
+licenseHeaders.enabled = true
+testingConventions.enabled = false
+forbiddenApis.ignoreFailures = false
+
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
+forbiddenApisTest.ignoreFailures = true
+
+esplugin {
+    name 'opendistro-job-scheduler'
+    description 'Open Distro for Elasticsearch job schduler plugin'
+    classname 'com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerPlugin'
+}
+
+
+integTestRunner {
+    // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
+    systemProperty 'tests.security.manager', 'false'
+    // TODO: FIXME
+    ifNoTests 'ignore'
+}
+
+
+allprojects {
+    group = 'com.amazon.opendistroforelasticsearch'
+    version = "${opendistroVersion}.0"
+
+    apply from: "$rootDir/build-tools/repositories.gradle"
+
+    boolean snapshot = "true".equals(System.getProperty("build.snapshot", "true"));
+    if (snapshot) {
+        version += "-SNAPSHOT"
+    }
+
+    plugins.withId('java') {
+        sourceCompatibility = targetCompatibility = "1.8"
+    }
+}
+
+dependencies {
+    compile project(path: ":${rootProject.name}-spi", configuration: 'shadow')
+}
+
+
+// RPM build
+apply plugin: 'nebula.ospackage'
+
+// This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
+afterEvaluate {
+    ospackage {
+        packageName = "${name}"
+        release = isSnapshot ? "0.1" : '1'
+        version = "${project.version}" - "-SNAPSHOT"
+
+        into '/usr/share/elasticsearch/plugins'
+        from(zipTree(bundlePlugin.archivePath)) {
+            into esplugin.name
+        }
+
+        user 'root'
+        permissionGroup 'root'
+        fileMode 0644
+        dirMode 0755
+
+        requires('elasticsearch-oss', versions.elasticsearch, EQUAL)
+        arch = 'NOARCH'
+        packager = 'Amazon'
+        vendor = 'Amazon'
+        os = 'LINUX'
+        prefix '/usr'
+
+        license 'ASL-2.0'
+        maintainer 'OpenDistro for Elasticsearch Team <opendistro@amazon.com>'
+        url 'https://opendistro.github.io/elasticsearch/downloads'
+        summary '''
+         JobScheduler plugin for OpenDistro for Elasticsearch. 
+         Reference documentation can be found at https://opendistro.github.io/elasticsearch/docs.
+    '''.stripIndent().replace('\n', ' ').trim()
+    }
+
+    buildRpm {
+        archiveName "${packageName}-${version}.rpm"
+        dependsOn 'assemble'
+    }
+}
