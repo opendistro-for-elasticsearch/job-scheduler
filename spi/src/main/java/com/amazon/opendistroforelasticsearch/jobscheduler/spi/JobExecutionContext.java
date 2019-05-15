@@ -19,6 +19,7 @@ import java.time.Instant;
 
 public class JobExecutionContext {
     private Instant expectedExecutionTime;
+    private JobDocVersion jobVersion;
 
     public Instant getExpectedExecutionTime() {
         return this.expectedExecutionTime;
@@ -26,5 +27,13 @@ public class JobExecutionContext {
 
     public void setExpectedExecutionTime(Instant expectedExecutionTime) {
         this.expectedExecutionTime = expectedExecutionTime;
+    }
+
+    public JobDocVersion getJobVersion() {
+        return this.jobVersion;
+    }
+
+    public void setJobVersion(JobDocVersion jobVersion) {
+        this.jobVersion = jobVersion;
     }
 }
