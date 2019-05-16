@@ -218,9 +218,8 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             this.sweptJobs.put(shardId, jobVersionMap);
         }
         jobVersionMap.compute(docId, (id, currentVersion) -> {
-            JobDocVersion newJobVersion = new JobDocVersion(version.getPrimaryTerm(), version.getSeqNo(), version.getVersion());
-            if (newJobVersion.compareTo(currentVersion) <= 0) {
-                log.info("Skipping job {}, new version {} <= current version {}", docId, newJobVersion, currentVersion);
+            if (version.compareTo(currentVersion) <= 0) {
+                log.info("Skipping job {}, new version {} <= current version {}", docId, version, currentVersion);
                 return currentVersion;
             }
 
@@ -239,9 +238,9 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                     }
                     ScheduledJobRunner jobRunner = this.indexToProviders.get(shardId.getIndexName()).getJobRunner();
                     if (jobParameter.isEnabled()) {
-                        this.scheduler.schedule(shardId.getIndexName(), docId, jobParameter, jobRunner, newJobVersion);
+                        this.scheduler.schedule(shardId.getIndexName(), docId, jobParameter, jobRunner, version);
                     }
-                    return newJobVersion;
+                    return version;
                 } catch (Exception e) {
                     log.warn("Unable to parse job, error message: {} , message source: {}", e.getMessage(),
                             Strings.cleanTruncate(jobSource.utf8ToString(), 1000));
