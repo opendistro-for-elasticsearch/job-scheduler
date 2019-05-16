@@ -19,6 +19,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerPlugin;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobExecutionContext;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
 import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -65,7 +66,8 @@ public class JobScheduler {
         return this.scheduledJobInfo.getJobsByIndex(indexName).keySet();
     }
 
-    public boolean schedule(String indexName, String docId, ScheduledJobParameter scheduledJobParameter, ScheduledJobRunner jobRunner) {
+    public boolean schedule(String indexName, String docId, ScheduledJobParameter scheduledJobParameter,
+                            ScheduledJobRunner jobRunner, JobDocVersion version) {
         if (!scheduledJobParameter.isEnabled()) {
             return false;
         }
@@ -81,7 +83,7 @@ public class JobScheduler {
                 return true;
             }
 
-            this.reschedule(scheduledJobParameter, jobInfo, jobRunner);
+            this.reschedule(scheduledJobParameter, jobInfo, jobRunner, version);
         }
 
         return true;
@@ -126,7 +128,8 @@ public class JobScheduler {
     }
 
     @VisibleForTesting
-    boolean reschedule(ScheduledJobParameter jobParameter, JobSchedulingInfo jobInfo, ScheduledJobRunner jobRunner) {
+    boolean reschedule(ScheduledJobParameter jobParameter, JobSchedulingInfo jobInfo, ScheduledJobRunner jobRunner,
+                       JobDocVersion version) {
         if (jobParameter.getEnabledTime() == null) {
             log.info("There is no enable time of job {}, this job should never be scheduled.",
                     jobParameter.getName());
@@ -149,11 +152,12 @@ public class JobScheduler {
             jobInfo.setExpectedPreviousExecutionTime(jobInfo.getExpectedExecutionTime());
             jobInfo.setActualPreviousExecutionTime(clock.instant());
             // schedule next execution
-            this.reschedule(jobParameter, jobInfo, jobRunner);
+            this.reschedule(jobParameter, jobInfo, jobRunner, version);
 
             // invoke job runner
             JobExecutionContext context = new JobExecutionContext();
             context.setExpectedExecutionTime(jobInfo.getExpectedPreviousExecutionTime());
+            context.setJobVersion(version);
             jobRunner.runJob(jobParameter, context);
         };
 

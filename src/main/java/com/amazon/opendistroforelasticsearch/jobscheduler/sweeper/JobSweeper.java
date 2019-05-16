@@ -20,6 +20,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.ScheduledJobProvider;
 import com.amazon.opendistroforelasticsearch.jobscheduler.scheduler.JobScheduler;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
 import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,7 +39,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.LifecycleListener;
-import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
@@ -86,7 +86,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
 
     private Scheduler.Cancellable scheduledFullSweep;
     private ExecutorService fullSweepExecutor;
-    private ConcurrentHashMap<ShardId, ConcurrentHashMap<String, Long>> sweptJobs;
+    private ConcurrentHashMap<ShardId, ConcurrentHashMap<String, JobDocVersion>> sweptJobs;
     private JobScheduler scheduler;
 
     private volatile long lastFullSweepTimeNano;
@@ -188,16 +188,16 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
 
         ShardNodes shardNodes = new ShardNodes(localNodeId, shardNodeIds);
         if (shardNodes.isOwningNode(index.id())) {
-            this.sweep(shardId, index.id(), result.getVersion(), index.source());
+            this.sweep(shardId, index.id(), index.source(), new JobDocVersion(result.getTerm(), result.getSeqNo(),result.getVersion()));
         }
     }
 
     @Override
     public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result) {
         if (result.getResultType() == Engine.Result.Type.FAILURE) {
-            ConcurrentHashMap<String, Long> shardJobs = this.sweptJobs.containsKey(shardId) ?
+            ConcurrentHashMap<String, JobDocVersion> shardJobs = this.sweptJobs.containsKey(shardId) ?
                     this.sweptJobs.get(shardId) : new ConcurrentHashMap<>();
-            Long version = shardJobs.get(delete.id());
+            JobDocVersion version = shardJobs.get(delete.id());
             log.debug("Deletion failed for scheduled job {}. Continuing with current version {}", delete.id(), version);
             return;
         }
@@ -209,8 +209,8 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
     }
 
     @VisibleForTesting
-    void sweep(ShardId shardId, String docId, Long newVersion, BytesReference jobSource) {
-        ConcurrentHashMap<String, Long> jobVersionMap;
+    void sweep(ShardId shardId, String docId, BytesReference jobSource, JobDocVersion version) {
+        ConcurrentHashMap<String, JobDocVersion> jobVersionMap;
         if (this.sweptJobs.containsKey(shardId)) {
             jobVersionMap = this.sweptJobs.get(shardId);
         } else {
@@ -218,11 +218,11 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             this.sweptJobs.put(shardId, jobVersionMap);
         }
         jobVersionMap.compute(docId, (id, currentVersion) -> {
-            currentVersion = currentVersion == null ? Versions.NOT_FOUND : currentVersion;
-            if(newVersion <= currentVersion ) {
-                log.debug("Skipping job {}, new version {} <= current version {}", docId, newVersion, currentVersion);
+            if (version.compareTo(currentVersion) <= 0) {
+                log.info("Skipping job {}, new version {} <= current version {}", docId, version, currentVersion);
                 return currentVersion;
             }
+
             if (this.scheduler.getScheduledJobIds(shardId.getIndexName()).contains(docId)) {
                 this.scheduler.deschedule(shardId.getIndexName(), docId);
             }
@@ -231,16 +231,16 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                     ScheduledJobProvider provider = this.indexToProviders.get(shardId.getIndexName());
                     XContentParser parser = XContentHelper.createParser(this.xContentRegistry, LoggingDeprecationHandler.INSTANCE,
                             jobSource, XContentType.JSON);
-                    ScheduledJobParameter jobParameter = provider.getJobParser().parse(parser, docId, newVersion);
+                    ScheduledJobParameter jobParameter = provider.getJobParser().parse(parser, docId, version.getVersion());
                     if (jobParameter == null) {
                         // allow parser to return null, which means this is not a scheduled job document.
                         return null;
                     }
                     ScheduledJobRunner jobRunner = this.indexToProviders.get(shardId.getIndexName()).getJobRunner();
                     if (jobParameter.isEnabled()) {
-                        this.scheduler.schedule(shardId.getIndexName(), docId, jobParameter, jobRunner);
+                        this.scheduler.schedule(shardId.getIndexName(), docId, jobParameter, jobRunner, version);
                     }
-                    return newVersion;
+                    return version;
                 } catch (Exception e) {
                     log.warn("Unable to parse job, error message: {} , message source: {}", e.getMessage(),
                             Strings.cleanTruncate(jobSource.utf8ToString(), 1000));
@@ -286,7 +286,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                         Collectors.mapping(shardRouting -> shardRouting, Collectors.toList())));
         // filter out shards not on local node
         return shards.entrySet().stream().filter((entry) -> entry.getValue().stream()
-                .filter((shardRouting -> shardRouting.currentNodeId().equals(localNodeId))).collect(Collectors.toList()).size() > 0)
+                .filter((shardRouting -> shardRouting.currentNodeId().equals(localNodeId))).count() > 0)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
@@ -307,9 +307,9 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             Map<ShardId, List<ShardRouting>> localShards = this.getLocalShards(clusterState, localNodeId, indexName);
 
             // deschedule jobs in removed shards
-            Iterator<Map.Entry<ShardId, ConcurrentHashMap<String, Long>>> sweptJobIter = this.sweptJobs.entrySet().iterator();
+            Iterator<Map.Entry<ShardId, ConcurrentHashMap<String, JobDocVersion>>> sweptJobIter = this.sweptJobs.entrySet().iterator();
             while(sweptJobIter.hasNext()) {
-                Map.Entry<ShardId, ConcurrentHashMap<String, Long>> entry = sweptJobIter.next();
+                Map.Entry<ShardId, ConcurrentHashMap<String, JobDocVersion>> entry = sweptJobIter.next();
                 if(entry.getKey().getIndexName().equals(indexName) && !localShards.containsKey(entry.getKey())) {
                     log.info("Descheduling jobs of shard {} index {} as the shard is removed from this node.",
                             entry.getKey().getId(), indexName);
@@ -334,7 +334,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
     }
 
     private void sweepShard(ShardId shardId, ShardNodes shardNodes, String startAfter) {
-        ConcurrentHashMap<String, Long> currentJobs = this.sweptJobs.containsKey(shardId) ?
+        ConcurrentHashMap<String, JobDocVersion> currentJobs = this.sweptJobs.containsKey(shardId) ?
                 this.sweptJobs.get(shardId) : new ConcurrentHashMap<>();
 
         for (String jobId : currentJobs.keySet()) {
@@ -346,12 +346,12 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
 
         String searchAfter = startAfter == null ? "" : startAfter;
         while(searchAfter != null) {
-            // this.sweepSearchBackoff.
             SearchRequest jobSearchRequest = new SearchRequest()
                     .indices(shardId.getIndexName())
                     .preference("_shards:" + shardId.id() + "|_only_local")
                     .source(new SearchSourceBuilder()
                             .version(true)
+                            .seqNoAndPrimaryTerm(true)
                             .sort(new FieldSortBuilder("_id").unmappedType("keyword").missing("_last"))
                             .searchAfter(new String[]{searchAfter})
                             .size(this.sweepPageMaxSize)
@@ -366,7 +366,8 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             for (SearchHit hit: response.getHits()) {
                 String jobId = hit.getId();
                 if(shardNodes.isOwningNode(jobId)) {
-                    this.sweep(shardId, jobId, hit.getVersion(), hit.getSourceRef());
+                    this.sweep(shardId, jobId, hit.getSourceRef(), new JobDocVersion(hit.getPrimaryTerm(), hit.getSeqNo(),
+                            hit.getVersion()));
                 }
             }
             if (response.getHits() == null || response.getHits().getHits().length < 1) {

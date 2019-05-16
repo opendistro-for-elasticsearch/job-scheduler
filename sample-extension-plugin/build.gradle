@@ -32,11 +32,10 @@ dependencies {
     compileOnly project(path: ":${rootProject.name}-spi", configuration: 'shadow')
 }
 
-unitTest.enabled = false;
-integTestRunner.enabled = false;
 testingConventions.enabled = false;
 
 
 integTestCluster {
-    module rootProject
+    distribution = "oss-zip"
+    plugin(rootProject.getPath())
 }

@@ -83,13 +83,13 @@ public class SampleJobRunner implements ScheduledJobRunner {
 
         SampleJobParameter parameter = (SampleJobParameter)jobParameter;
         StringBuilder msg = new StringBuilder();
-        msg.append("Watching index " + parameter.getIndexToWatch() + "\n");
+        msg.append("Watching index ").append(parameter.getIndexToWatch()).append("\n");
 
 
         List<ShardRouting> shardRoutingList = this.clusterService.state().routingTable().allShards(parameter.getIndexToWatch());
         for(ShardRouting shardRouting : shardRoutingList) {
-            msg.append(shardRouting.shardId().getId() + "\t" + shardRouting.currentNodeId() +
-                    "\t" + (shardRouting.active() ? "active" : "inactive") + "\n");
+            msg.append(shardRouting.shardId().getId()).append("\t").append(shardRouting.currentNodeId()).append("\t")
+                    .append(shardRouting.active() ? "active" : "inactive").append("\n");
         }
         log.info(msg.toString());
     }

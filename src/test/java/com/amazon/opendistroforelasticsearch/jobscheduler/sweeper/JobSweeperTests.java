@@ -18,6 +18,7 @@ package com.amazon.opendistroforelasticsearch.jobscheduler.sweeper;
 import com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerSettings;
 import com.amazon.opendistroforelasticsearch.jobscheduler.ScheduledJobProvider;
 import com.amazon.opendistroforelasticsearch.jobscheduler.scheduler.JobScheduler;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParser;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
@@ -139,7 +140,8 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         this.sweeper.initBackgroundSweep();
         Mockito.verify(cancellable).cancel();
-        Mockito.verify(this.threadPool, Mockito.times(2)).scheduleWithFixedDelay(Mockito.any(), Mockito.any(), Mockito.anyString());
+        Mockito.verify(this.threadPool, Mockito.times(2))
+                .scheduleWithFixedDelay(Mockito.any(), Mockito.any(), Mockito.anyString());
     }
 
     @Test
@@ -193,12 +195,14 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         Mockito.when(this.clusterService.state()).thenReturn(clusterState);
         JobSweeper testSweeper = Mockito.spy(this.sweeper);
-        Mockito.doNothing().when(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.anyLong(), Mockito.any());
+        Mockito.doNothing().when(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.any(BytesReference.class),
+                Mockito.any(JobDocVersion.class));
         for (int i = 0; i<clusterState.getNodes().getSize(); i++) {
             testSweeper.postIndex(shardId, index, indexResult);
         }
 
-        Mockito.verify(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.anyLong(), Mockito.any());
+        Mockito.verify(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.any(BytesReference.class),
+                Mockito.any(JobDocVersion.class));
     }
 
     @Test
@@ -242,15 +246,17 @@ public class JobSweeperTests extends ESAllocationTestCase {
     public void testSweep() throws IOException {
         ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
 
-        this.sweeper.sweep(shardId, "id", 2L, this.getTestJsonSource());
-        Mockito.verify(this.scheduler, Mockito.times(0)).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any());
+        this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
+        Mockito.verify(this.scheduler, Mockito.times(0)).schedule(Mockito.anyString(), Mockito.anyString(),
+                Mockito.any(), Mockito.any(), Mockito.any(JobDocVersion.class));
 
         ScheduledJobParameter mockJobParameter = Mockito.mock(ScheduledJobParameter.class);
         Mockito.when(mockJobParameter.isEnabled()).thenReturn(true);
         Mockito.when(this.jobParser.parse(Mockito.any(), Mockito.anyString(), Mockito.anyLong())).thenReturn(mockJobParameter);
 
-        this.sweeper.sweep(shardId, "id", 2L, this.getTestJsonSource());
-        Mockito.verify(this.scheduler).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any());
+        this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
+        Mockito.verify(this.scheduler).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any(),
+                Mockito.any(JobDocVersion.class));
     }
 
     private ClusterState addNodesToCluter(ClusterState clusterState, int nodeCount) {
