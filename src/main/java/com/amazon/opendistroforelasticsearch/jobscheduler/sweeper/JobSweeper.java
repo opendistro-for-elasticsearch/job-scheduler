@@ -188,8 +188,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
 
         ShardNodes shardNodes = new ShardNodes(localNodeId, shardNodeIds);
         if (shardNodes.isOwningNode(index.id())) {
-            JobDocVersion jobDocVersion = new JobDocVersion(result.getTerm(), result.getSeqNo(), result.getVersion());
-            this.sweep(shardId, index.id(), index.source(), jobDocVersion);
+            this.sweep(shardId, index.id(), index.source(), new JobDocVersion(result.getTerm(), result.getSeqNo(),result.getVersion()));
         }
     }
 
@@ -368,8 +367,8 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             for (SearchHit hit: response.getHits()) {
                 String jobId = hit.getId();
                 if(shardNodes.isOwningNode(jobId)) {
-                    JobDocVersion jobDocVersion = new JobDocVersion(hit.getPrimaryTerm(), hit.getSeqNo(), hit.getVersion());
-                    this.sweep(shardId, jobId, hit.getSourceRef(), jobDocVersion);
+                    this.sweep(shardId, jobId, hit.getSourceRef(), new JobDocVersion(hit.getPrimaryTerm(), hit.getSeqNo(),
+                            hit.getVersion()));
                 }
             }
             if (response.getHits() == null || response.getHits().getHits().length < 1) {
