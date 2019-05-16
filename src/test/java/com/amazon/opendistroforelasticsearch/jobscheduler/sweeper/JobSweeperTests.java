@@ -195,14 +195,14 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         Mockito.when(this.clusterService.state()).thenReturn(clusterState);
         JobSweeper testSweeper = Mockito.spy(this.sweeper);
-        Mockito.doNothing().when(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.anyLong(), Mockito.any(),
-                Mockito.anyLong(), Mockito.anyLong());
+        Mockito.doNothing().when(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.any(BytesReference.class),
+                Mockito.any(JobDocVersion.class));
         for (int i = 0; i<clusterState.getNodes().getSize(); i++) {
             testSweeper.postIndex(shardId, index, indexResult);
         }
 
-        Mockito.verify(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.anyLong(), Mockito.any(),
-                Mockito.anyLong(), Mockito.anyLong());
+        Mockito.verify(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.any(BytesReference.class),
+                Mockito.any(JobDocVersion.class));
     }
 
     @Test
@@ -246,7 +246,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
     public void testSweep() throws IOException {
         ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
 
-        this.sweeper.sweep(shardId, "id", 2L, this.getTestJsonSource(), 1L, 1L);
+        this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
         Mockito.verify(this.scheduler, Mockito.times(0)).schedule(Mockito.anyString(), Mockito.anyString(),
                 Mockito.any(), Mockito.any(), Mockito.any(JobDocVersion.class));
 
@@ -254,7 +254,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
         Mockito.when(mockJobParameter.isEnabled()).thenReturn(true);
         Mockito.when(this.jobParser.parse(Mockito.any(), Mockito.anyString(), Mockito.anyLong())).thenReturn(mockJobParameter);
 
-        this.sweeper.sweep(shardId, "id", 2L, this.getTestJsonSource(), 1L, 1L);
+        this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
         Mockito.verify(this.scheduler).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any(),
                 Mockito.any(JobDocVersion.class));
     }

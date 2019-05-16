@@ -36,5 +36,6 @@ testingConventions.enabled = false;
 
 
 integTestCluster {
-    module rootProject
+    distribution = "oss-zip"
+    plugin(rootProject.getPath())
 }

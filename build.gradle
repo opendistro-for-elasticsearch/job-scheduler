@@ -66,6 +66,10 @@ integTestRunner {
     systemProperty 'tests.security.manager', 'false'
 }
 
+integTestCluster {
+    distribution = "oss-zip"
+}
+
 allprojects {
     group = 'com.amazon.opendistroforelasticsearch'
     version = "${opendistroVersion}.0"

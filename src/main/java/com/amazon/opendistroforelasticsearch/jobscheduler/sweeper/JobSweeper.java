@@ -188,7 +188,8 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
 
         ShardNodes shardNodes = new ShardNodes(localNodeId, shardNodeIds);
         if (shardNodes.isOwningNode(index.id())) {
-            this.sweep(shardId, index.id(), result.getVersion(), index.source(), result.getTerm(), result.getSeqNo());
+            JobDocVersion jobDocVersion = new JobDocVersion(result.getTerm(), result.getSeqNo(), result.getVersion());
+            this.sweep(shardId, index.id(), index.source(), jobDocVersion);
         }
     }
 
@@ -209,7 +210,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
     }
 
     @VisibleForTesting
-    void sweep(ShardId shardId, String docId, Long version, BytesReference jobSource, long primaryTerm, long seqNo) {
+    void sweep(ShardId shardId, String docId, BytesReference jobSource, JobDocVersion version) {
         ConcurrentHashMap<String, JobDocVersion> jobVersionMap;
         if (this.sweptJobs.containsKey(shardId)) {
             jobVersionMap = this.sweptJobs.get(shardId);
@@ -218,7 +219,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             this.sweptJobs.put(shardId, jobVersionMap);
         }
         jobVersionMap.compute(docId, (id, currentVersion) -> {
-            JobDocVersion newJobVersion = new JobDocVersion(primaryTerm, seqNo, version);
+            JobDocVersion newJobVersion = new JobDocVersion(version.getPrimaryTerm(), version.getSeqNo(), version.getVersion());
             if (newJobVersion.compareTo(currentVersion) <= 0) {
                 log.info("Skipping job {}, new version {} <= current version {}", docId, newJobVersion, currentVersion);
                 return currentVersion;
@@ -232,7 +233,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                     ScheduledJobProvider provider = this.indexToProviders.get(shardId.getIndexName());
                     XContentParser parser = XContentHelper.createParser(this.xContentRegistry, LoggingDeprecationHandler.INSTANCE,
                             jobSource, XContentType.JSON);
-                    ScheduledJobParameter jobParameter = provider.getJobParser().parse(parser, docId, version);
+                    ScheduledJobParameter jobParameter = provider.getJobParser().parse(parser, docId, version.getVersion());
                     if (jobParameter == null) {
                         // allow parser to return null, which means this is not a scheduled job document.
                         return null;
@@ -367,7 +368,8 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             for (SearchHit hit: response.getHits()) {
                 String jobId = hit.getId();
                 if(shardNodes.isOwningNode(jobId)) {
-                    this.sweep(shardId, jobId, hit.getVersion(), hit.getSourceRef(), hit.getPrimaryTerm(), hit.getSeqNo());
+                    JobDocVersion jobDocVersion = new JobDocVersion(hit.getPrimaryTerm(), hit.getSeqNo(), hit.getVersion());
+                    this.sweep(shardId, jobId, hit.getSourceRef(), jobDocVersion);
                 }
             }
             if (response.getHits() == null || response.getHits().getHits().length < 1) {
