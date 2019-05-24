@@ -26,7 +26,7 @@ elasticsearch-plugin install file://${PLUGIN_ZIP_FILE_PATH}
 to install the JobScheduler plugin to your Elasticsearch.
 
 ## Develop a plugin that extends JobScheduler
-JobScheduelr plugin provides a SPI for other plugins to implement. Essentially, you need to
+JobScheduler plugin provides a SPI for other plugins to implement. Essentially, you need to
 1. Define your *JobParameter* type by implementing `ScheduledJobParameter` interface
 1. Implement your JobParameter parser function that can deserialize your JobParameter from XContent
 1. Create your *JobRunner* implementation by implementing `ScheduledJobRunner` interface
