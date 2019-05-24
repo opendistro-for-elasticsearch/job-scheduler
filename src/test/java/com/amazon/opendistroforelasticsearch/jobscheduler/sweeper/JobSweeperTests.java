@@ -22,6 +22,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParser;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
+import com.amazon.opendistroforelasticsearch.jobscheduler.utils.LockService;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
@@ -121,7 +122,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
         Map<String, ScheduledJobProvider> jobProviderMap = new HashMap<>();
         jobProviderMap.put("index-name", jobProvider);
         sweeper = new JobSweeper(settings, this.client, this.clusterService, this.threadPool, xContentRegistry,
-                jobProviderMap, scheduler);
+                jobProviderMap, scheduler, Mockito.mock(LockService.class));
     }
 
     @Test

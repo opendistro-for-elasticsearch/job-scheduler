@@ -17,10 +17,12 @@ package com.amazon.opendistroforelasticsearch.jobscheduler.sweeper;
 
 import com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerSettings;
 import com.amazon.opendistroforelasticsearch.jobscheduler.ScheduledJobProvider;
+import com.amazon.opendistroforelasticsearch.jobscheduler.model.lock.LockModel;
 import com.amazon.opendistroforelasticsearch.jobscheduler.scheduler.JobScheduler;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
+import com.amazon.opendistroforelasticsearch.jobscheduler.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -88,6 +90,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
     private ExecutorService fullSweepExecutor;
     private ConcurrentHashMap<ShardId, ConcurrentHashMap<String, JobDocVersion>> sweptJobs;
     private JobScheduler scheduler;
+    private LockService jobSchedulerLock;
 
     private volatile long lastFullSweepTimeNano;
 
@@ -98,15 +101,16 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
     private volatile Integer sweepSearchBackoffRetryCount;
     private volatile BackoffPolicy sweepSearchBackoff;
 
-
     public JobSweeper(Settings settings, Client client, ClusterService clusterService, ThreadPool threadPool,
-                      NamedXContentRegistry registry, Map<String, ScheduledJobProvider> indexToProviders, JobScheduler scheduler) {
+                      NamedXContentRegistry registry, Map<String, ScheduledJobProvider> indexToProviders, JobScheduler scheduler,
+                      LockService jobSchedulerLock) {
         this.client = client;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.xContentRegistry = registry;
         this.indexToProviders = indexToProviders;
         this.scheduler = scheduler;
+        this.jobSchedulerLock = jobSchedulerLock;
 
         this.lastFullSweepTimeNano = System.nanoTime();
         this.loadSettings(settings);
@@ -205,6 +209,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
         if(this.scheduler.getScheduledJobIds(shardId.getIndexName()).contains(delete.id())) {
             log.info("Descheduling job {} on index {}", delete.id(), shardId.getIndexName());
             this.scheduler.deschedule(shardId.getIndexName(), delete.id());
+            jobSchedulerLock.deleteLock(LockModel.generateLockId(shardId.getIndexName(), delete.id()));
         }
     }
 

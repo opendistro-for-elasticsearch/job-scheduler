@@ -16,10 +16,12 @@
 package com.amazon.opendistroforelasticsearch.jobscheduler.scheduler;
 
 import com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerPlugin;
+import com.amazon.opendistroforelasticsearch.jobscheduler.model.lock.LockModel;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobExecutionContext;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
+import com.amazon.opendistroforelasticsearch.jobscheduler.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,11 +47,13 @@ public class JobScheduler {
     private ThreadPool threadPool;
     private ScheduledJobInfo scheduledJobInfo;
     private Clock clock;
+    private final LockService lockService;
 
-    public JobScheduler(ThreadPool threadPool) {
+    public JobScheduler(ThreadPool threadPool, final LockService lockService) {
         this.threadPool = threadPool;
         this.scheduledJobInfo = new ScheduledJobInfo();
         this.clock = Clock.systemDefaultZone();
+        this.lockService = lockService;
     }
 
     @VisibleForTesting
@@ -76,7 +80,7 @@ public class JobScheduler {
         synchronized (this.scheduledJobInfo.getJobsByIndex(indexName)) {
             jobInfo = this.scheduledJobInfo.getJobInfo(indexName, docId);
             if (jobInfo == null) {
-                jobInfo = new JobSchedulingInfo(docId, scheduledJobParameter);
+                jobInfo = new JobSchedulingInfo(indexName, docId, scheduledJobParameter);
                 this.scheduledJobInfo.addJob(indexName, docId, jobInfo);
             }
             if (jobInfo.getScheduledCancellable() != null) {
@@ -158,7 +162,20 @@ public class JobScheduler {
             JobExecutionContext context = new JobExecutionContext();
             context.setExpectedExecutionTime(jobInfo.getExpectedPreviousExecutionTime());
             context.setJobVersion(version);
-            jobRunner.runJob(jobParameter, context);
+
+            if (jobParameter.getLockDurationSeconds() == null) {
+                jobRunner.runJob(jobParameter, context);
+            } else {
+                final LockModel lock =
+                    lockService.acquireLock(jobInfo.getIndexName(), jobInfo.getJobId(), jobParameter.getLockDurationSeconds());
+                if (lock != null) {
+                    log.info("We have acquired lock. Running job.");
+                    jobRunner.runJob(jobParameter, context);
+                    lockService.release(lock);
+                } else {
+                    log.info("Could not acquire lock. Skipping jobRunner.");
+                }
+            }
         };
 
         if (jobInfo.isDescheduled()) {

@@ -69,7 +69,6 @@ public class SampleJobRunner implements ScheduledJobRunner {
         this.clusterService = clusterService;
     }
 
-
     @Override
     public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
         if(!(jobParameter instanceof SampleJobParameter)) {
@@ -81,10 +80,9 @@ public class SampleJobRunner implements ScheduledJobRunner {
             throw new IllegalStateException("ClusterService is not initialized.");
         }
 
-        SampleJobParameter parameter = (SampleJobParameter)jobParameter;
+        SampleJobParameter parameter = (SampleJobParameter) jobParameter;
         StringBuilder msg = new StringBuilder();
         msg.append("Watching index ").append(parameter.getIndexToWatch()).append("\n");
-
 
         List<ShardRouting> shardRoutingList = this.clusterService.state().routingTable().allShards(parameter.getIndexToWatch());
         for(ShardRouting shardRouting : shardRoutingList) {

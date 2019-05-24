@@ -35,6 +35,7 @@ public class SampleJobParameter implements ScheduledJobParameter {
     public static final String SCHEDULE_FIELD = "schedule";
     public static final String ENABLED_TIME_FILED = "enabled_time";
     public static final String INDEX_NAME_FIELD = "index_name_to_watch";
+    public static final String LOCK_DURATION_SECONDS = "lock_duration_seconds";
 
     private String jobName;
     private Instant lastUpdateTime;
@@ -42,11 +43,12 @@ public class SampleJobParameter implements ScheduledJobParameter {
     private boolean isEnabled;
     private Schedule schedule;
     private String indexToWatch;
+    private Long lockDurationSeconds;
 
     public SampleJobParameter() {
     }
 
-    public SampleJobParameter(String id, String name, String indexToWatch, Schedule schedule) {
+    public SampleJobParameter(String id, String name, String indexToWatch, Schedule schedule, Long lockDurationSeconds) {
         this.jobName = name;
         this.indexToWatch = indexToWatch;
         this.schedule = schedule;
@@ -55,6 +57,7 @@ public class SampleJobParameter implements ScheduledJobParameter {
         this.isEnabled = true;
         this.enabledTime = now;
         this.lastUpdateTime = now;
+        this.lockDurationSeconds = lockDurationSeconds;
     }
 
     @Override
@@ -80,6 +83,11 @@ public class SampleJobParameter implements ScheduledJobParameter {
     @Override
     public boolean isEnabled() {
         return this.isEnabled;
+    }
+
+    @Override
+    public Long getLockDurationSeconds() {
+        return this.lockDurationSeconds;
     }
 
     public String getIndexToWatch() {
@@ -110,6 +118,10 @@ public class SampleJobParameter implements ScheduledJobParameter {
         this.indexToWatch = indexToWatch;
     }
 
+    public void setLockDurationSeconds(Long lockDurationSeconds) {
+        this.lockDurationSeconds = lockDurationSeconds;
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -122,6 +134,9 @@ public class SampleJobParameter implements ScheduledJobParameter {
         }
         if(this.lastUpdateTime != null) {
             builder.timeField(LAST_UPDATE_TIME_FIELD, LAST_UPDATE_TIME_FIELD, this.lastUpdateTime.toEpochMilli());
+        }
+        if(this.lockDurationSeconds != null) {
+            builder.field(LOCK_DURATION_SECONDS, this.lockDurationSeconds);
         }
         builder.endObject();
         return builder;

@@ -116,6 +116,9 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
                     case SampleJobParameter.INDEX_NAME_FIELD:
                         jobParameter.setIndexToWatch(parser.text());
                         break;
+                    case SampleJobParameter.LOCK_DURATION_SECONDS:
+                        jobParameter.setLockDurationSeconds(parser.longValue());
+                        break;
                     default: XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
                 }
             }
