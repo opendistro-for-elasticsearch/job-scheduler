@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
@@ -31,7 +30,7 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -51,19 +50,23 @@ import java.time.Instant;
 
 public class LockService {
     private static final Logger logger = LogManager.getLogger(LockService.class);
+    /**
+     * This should go away starting ES 7. We use "_doc" for future compatibility as described here:
+     * https://www.elastic.co/guide/en/elasticsearch/reference/6.x/removal-of-types.html#_schedule_for_removal_of_mapping_types
+     */
     private static final String MAPPING_TYPE = "_doc";
     private static final String LOCK_INDEX_NAME = ".opendistro-job-scheduler-lock";
 
-    private final IndicesAdminClient indicesAdminClient;
     private final Client client;
+    private final ClusterService clusterService;
     private boolean isIndexInitialized;
 
     // This is used in tests to control time.
     private Instant testInstant;
 
-    public LockService(final IndicesAdminClient indicesAdminClient, final Client client) {
-        this.indicesAdminClient = indicesAdminClient;
+    public LockService(final Client client, final ClusterService clusterService) {
         this.client = client;
+        this.clusterService = clusterService;
         this.isIndexInitialized = false;
     }
 
@@ -83,7 +86,7 @@ public class LockService {
 
     @VisibleForTesting
     boolean createLockIndex() {
-        final boolean exists = indicesAdminClient.exists(new IndicesExistsRequest(LOCK_INDEX_NAME).local(true)).actionGet().isExists();
+        final boolean exists = clusterService.state().routingTable().hasIndex(LOCK_INDEX_NAME);
         if (exists) {
             return true;
         }
@@ -91,7 +94,7 @@ public class LockService {
         try {
             final CreateIndexRequest request = new CreateIndexRequest(LOCK_INDEX_NAME)
                 .mapping(MAPPING_TYPE, lockMapping(), XContentType.JSON);
-            return indicesAdminClient.create(request).actionGet().isAcknowledged();
+            return client.admin().indices().create(request).actionGet().isAcknowledged();
         } catch (ResourceAlreadyExistsException e) {
             return true;
         }

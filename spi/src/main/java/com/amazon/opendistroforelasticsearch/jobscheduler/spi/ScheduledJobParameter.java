@@ -50,7 +50,7 @@ public interface ScheduledJobParameter extends ToXContentObject {
     boolean isEnabled();
 
     /**
-     * @return Null if shceduled job doesn't need lock. Seconds of lock duration if the scheduled job needs to be a singleton runner.
+     * @return Null if scheduled job doesn't need lock. Seconds of lock duration if the scheduled job needs to be a singleton runner.
      */
     default Long getLockDurationSeconds() {
         return null;

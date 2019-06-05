@@ -24,7 +24,7 @@ import java.time.Instant;
 
 /**
  * A sample job parameter.
- *
+ * <p>
  * It adds an additional "indexToWatch" field to {@link ScheduledJobParameter}, which stores the index
  * the job runner will watch.
  */
@@ -126,16 +126,16 @@ public class SampleJobParameter implements ScheduledJobParameter {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.field(NAME_FIELD, this.jobName)
-                .field(ENABLED_FILED, this.isEnabled)
-                .field(SCHEDULE_FIELD, this.schedule)
-                .field(INDEX_NAME_FIELD, this.indexToWatch);
-        if(this.enabledTime != null) {
+            .field(ENABLED_FILED, this.isEnabled)
+            .field(SCHEDULE_FIELD, this.schedule)
+            .field(INDEX_NAME_FIELD, this.indexToWatch);
+        if (this.enabledTime != null) {
             builder.timeField(ENABLED_TIME_FILED, ENABLED_TIME_FILED, this.enabledTime.toEpochMilli());
         }
-        if(this.lastUpdateTime != null) {
+        if (this.lastUpdateTime != null) {
             builder.timeField(LAST_UPDATE_TIME_FIELD, LAST_UPDATE_TIME_FIELD, this.lastUpdateTime.toEpochMilli());
         }
-        if(this.lockDurationSeconds != null) {
+        if (this.lockDurationSeconds != null) {
             builder.field(LOCK_DURATION_SECONDS, this.lockDurationSeconds);
         }
         builder.endObject();

@@ -63,7 +63,7 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
 
     private JobSweeper sweeper;
     private JobScheduler scheduler;
-    private LockService jobSchedulerLock;
+    private LockService lockService;
     private Map<String, ScheduledJobProvider> indexToJobProviders;
     private Set<String> indicesToListen;
 
@@ -77,10 +77,10 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
                            ResourceWatcherService resourceWatcherService, ScriptService scriptService,
                            NamedXContentRegistry xContentRegistry, Environment environment,
                            NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
-        this.jobSchedulerLock = new LockService(client.admin().indices(), client);
-        this.scheduler = new JobScheduler(threadPool, jobSchedulerLock);
+        this.lockService = new LockService(client, clusterService);
+        this.scheduler = new JobScheduler(threadPool, this.lockService);
         this.sweeper = initSweeper(environment.settings(), client, clusterService, threadPool, xContentRegistry,
-                                   this.scheduler, this.jobSchedulerLock);
+                                   this.scheduler, this.lockService);
         clusterService.addListener(this.sweeper);
         clusterService.addLifecycleListener(this.sweeper);
 

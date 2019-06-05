@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class LockServiceTests extends ESIntegTestCase {
@@ -37,7 +36,7 @@ public class LockServiceTests extends ESIntegTestCase {
 
     @Test
     public void sanityTest() {
-        LockService lockService = new LockService(client().admin().indices(), client());
+        LockService lockService = new LockService(client(), clusterService());
         LockModel lock = lockService.acquireLock(JOB_TYPE, JOB_ID, LOCK_DURATION_SECONDS);
         assertNotNull("Expected to successfully grab lock", lock);
         assertEquals(lock.getJobId(), JOB_ID);
@@ -49,7 +48,7 @@ public class LockServiceTests extends ESIntegTestCase {
 
     @Test
     public void secondAcquireLockFail() {
-        LockService lockService = new LockService(client().admin().indices(), client());
+        LockService lockService = new LockService(client(), clusterService());
         LockModel lock = lockService.acquireLock(JOB_TYPE, JOB_ID, LOCK_DURATION_SECONDS);
         LockModel lock2 = lockService.acquireLock(JOB_TYPE, JOB_ID, LOCK_DURATION_SECONDS);
         assertNotNull("Expected to successfully grab lock", lock);
@@ -59,7 +58,7 @@ public class LockServiceTests extends ESIntegTestCase {
 
     @Test
     public void lockReleasedAndAcquired() {
-        LockService lockService = new LockService(client().admin().indices(), client());
+        LockService lockService = new LockService(client(), clusterService());
         LockModel lock = lockService.acquireLock(JOB_TYPE, JOB_ID, LOCK_DURATION_SECONDS);
         assertNotNull("Expected to successfully grab lock", lock);
         assertTrue("Failed to release lock.", lockService.release(lock));
@@ -70,7 +69,7 @@ public class LockServiceTests extends ESIntegTestCase {
 
     @Test
     public void lockExpired() {
-        LockService lockService = new LockService(client().admin().indices(), client());
+        LockService lockService = new LockService(client(), clusterService());
         // Set lock time in the past.
         lockService.setTime(Instant.now().minus(Duration.ofSeconds(LOCK_DURATION_SECONDS + LOCK_DURATION_SECONDS)));
         LockModel lock = lockService.acquireLock(JOB_TYPE, JOB_ID, LOCK_DURATION_SECONDS);
@@ -85,7 +84,7 @@ public class LockServiceTests extends ESIntegTestCase {
 
     @Test
     public void multiThreadCreateLock() throws Exception {
-        final LockService lockService = new LockService(client().admin().indices(), client());
+        final LockService lockService = new LockService(client(), clusterService());
         lockService.createLockIndex();
         ExecutorService executor = Executors.newFixedThreadPool(3);
         final AtomicReference<LockModel> lockModelAtomicReference = new AtomicReference<>(null);
@@ -104,8 +103,7 @@ public class LockServiceTests extends ESIntegTestCase {
             callable
         );
 
-        final AtomicInteger counter = new AtomicInteger(0);
-        executor.invokeAll(callables)
+        final int counter = executor.invokeAll(callables)
             .stream()
             .map(future -> {
                 try {
@@ -114,10 +112,11 @@ public class LockServiceTests extends ESIntegTestCase {
                     throw new IllegalStateException(e);
                 }
             })
-            .forEach(counter::getAndAdd);
+            .mapToInt(Integer::intValue)
+            .sum();
         executor.shutdown();
 
-        assertEquals("There should be only one that grabs the lock.", 1, counter.get());
+        assertEquals("There should be only one that grabs the lock.", 1, counter);
 
         final LockModel lockModel = lockModelAtomicReference.get();
         assertNotNull(lockModel);
@@ -126,7 +125,7 @@ public class LockServiceTests extends ESIntegTestCase {
 
     @Test
     public void multiThreadAcquireLock() throws Exception {
-        final LockService lockService = new LockService(client().admin().indices(), client());
+        final LockService lockService = new LockService(client(), clusterService());
         lockService.createLockIndex();
 
         // Set lock time in the past.
@@ -153,8 +152,7 @@ public class LockServiceTests extends ESIntegTestCase {
             callable
         );
 
-        final AtomicInteger counter = new AtomicInteger(0);
-        executor.invokeAll(callables)
+        final int counter = executor.invokeAll(callables)
             .stream()
             .map(future -> {
                 try {
@@ -163,10 +161,12 @@ public class LockServiceTests extends ESIntegTestCase {
                     throw new IllegalStateException(e);
                 }
             })
-            .forEach(counter::getAndAdd);
+            .mapToInt(Integer::intValue)
+            .sum();
+
         executor.shutdown();
 
-        assertEquals("There should be only one that grabs the lock.", 1, counter.get());
+        assertEquals("There should be only one that grabs the lock.", 1, counter);
 
         final LockModel lockModel = lockModelAtomicReference.get();
         assertNotNull(lockModel);
