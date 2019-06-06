@@ -16,12 +16,11 @@
 package com.amazon.opendistroforelasticsearch.jobscheduler.scheduler;
 
 import com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerPlugin;
-import com.amazon.opendistroforelasticsearch.jobscheduler.model.lock.LockModel;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobExecutionContext;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
-import com.amazon.opendistroforelasticsearch.jobscheduler.utils.LockService;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -159,23 +158,10 @@ public class JobScheduler {
             this.reschedule(jobParameter, jobInfo, jobRunner, version);
 
             // invoke job runner
-            JobExecutionContext context = new JobExecutionContext();
-            context.setExpectedExecutionTime(jobInfo.getExpectedPreviousExecutionTime());
-            context.setJobVersion(version);
+            JobExecutionContext context =
+                new JobExecutionContext(jobInfo.getExpectedPreviousExecutionTime(), version, lockService, jobInfo.getJobId());
 
-            if (jobParameter.getLockDurationSeconds() == null) {
-                jobRunner.runJob(jobParameter, context);
-            } else {
-                final LockModel lock =
-                    lockService.acquireLock(jobInfo.getIndexName(), jobInfo.getJobId(), jobParameter.getLockDurationSeconds());
-                if (lock != null) {
-                    log.info("We have acquired lock. Running job.");
-                    jobRunner.runJob(jobParameter, context);
-                    lockService.release(lock);
-                } else {
-                    log.info("Could not acquire lock. Skipping jobRunner.");
-                }
-            }
+            jobRunner.runJob(jobParameter, context);
         };
 
         if (jobInfo.isDescheduled()) {

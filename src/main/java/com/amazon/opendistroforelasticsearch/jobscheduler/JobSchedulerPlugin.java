@@ -21,8 +21,8 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParser
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.Schedule;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.ScheduleParser;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.sweeper.JobSweeper;
-import com.amazon.opendistroforelasticsearch.jobscheduler.utils.LockService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -57,7 +57,7 @@ import java.util.Set;
 
 public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
 
-    public static final String OPEN_DISTRO_JOB_SCHEDULER_THREAD_POOL_NAME = "open_distro_job_runner";
+    public static final String OPEN_DISTRO_JOB_SCHEDULER_THREAD_POOL_NAME = "open_distro_job_scheduler";
 
     private static final Logger log = LogManager.getLogger(JobSchedulerPlugin.class);
 
@@ -150,8 +150,8 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
     }
 
     private JobSweeper initSweeper(Settings settings, Client client, ClusterService clusterService, ThreadPool threadPool,
-                                   NamedXContentRegistry registry, JobScheduler scheduler, LockService jobSchedulerLock) {
+                                   NamedXContentRegistry registry, JobScheduler scheduler, LockService lockService) {
         return new JobSweeper(settings, client, clusterService, threadPool, registry,
-                              this.indexToJobProviders, scheduler, jobSchedulerLock);
+                              this.indexToJobProviders, scheduler, lockService);
     }
 }

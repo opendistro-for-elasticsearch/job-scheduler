@@ -69,6 +69,7 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
                                                NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
         SampleJobRunner jobRunner = SampleJobRunner.getJobRunnerInstance();
         jobRunner.setClusterService(clusterService);
+        jobRunner.setThreadPool(threadPool);
 
         return Collections.emptyList();
     }

@@ -15,25 +15,36 @@
 
 package com.amazon.opendistroforelasticsearch.jobscheduler.spi;
 
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
+
 import java.time.Instant;
 
 public class JobExecutionContext {
-    private Instant expectedExecutionTime;
-    private JobDocVersion jobVersion;
+    private final Instant expectedExecutionTime;
+    private final JobDocVersion jobVersion;
+    private final LockService lockService;
+    private final String jobId;
+
+    public JobExecutionContext(Instant expectedExecutionTime, JobDocVersion jobVersion, LockService lockService, String jobId) {
+        this.expectedExecutionTime = expectedExecutionTime;
+        this.jobVersion = jobVersion;
+        this.lockService = lockService;
+        this.jobId = jobId;
+    }
 
     public Instant getExpectedExecutionTime() {
         return this.expectedExecutionTime;
-    }
-
-    public void setExpectedExecutionTime(Instant expectedExecutionTime) {
-        this.expectedExecutionTime = expectedExecutionTime;
     }
 
     public JobDocVersion getJobVersion() {
         return this.jobVersion;
     }
 
-    public void setJobVersion(JobDocVersion jobVersion) {
-        this.jobVersion = jobVersion;
+    public LockService getLockService() {
+        return this.lockService;
+    }
+
+    public String getJobId() {
+        return this.jobId;
     }
 }

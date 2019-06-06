@@ -1,7 +1,7 @@
 {
   "dynamic": "strict",
   "properties": {
-    "job_type": {
+    "job_index_name": {
       "type": "keyword"
     },
     "job_id": {

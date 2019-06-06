@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-package com.amazon.opendistroforelasticsearch.jobscheduler.model.lock;
+package com.amazon.opendistroforelasticsearch.jobscheduler.spi;
 
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.ToXContentObject;
@@ -27,16 +27,16 @@ import java.time.Instant;
 
 import static java.util.Objects.requireNonNull;
 
-public class LockModel implements ToXContentObject {
+public final class LockModel implements ToXContentObject {
     private static final String LOCK_ID_DELIMITR = "-";
-    public static final String JOB_TYPE = "job_type";
+    public static final String JOB_INDEX_NAME = "job_index_name";
     public static final String JOB_ID = "job_id";
     public static final String LOCK_TIME = "lock_time";
     public static final String LOCK_DURATION = "lock_duration_seconds";
     public static final String RELEASED = "released";
 
     private final String lockId;
-    private final String jobType;
+    private final String jobIndexName;
     private final String jobId;
     private final Instant lockTime;
     private final long lockDurationSeconds;
@@ -52,7 +52,7 @@ public class LockModel implements ToXContentObject {
      * @param primaryTerm primary term from Elasticsearch document.
      */
     public LockModel(final LockModel copyLock, long seqNo, long primaryTerm) {
-        this(copyLock.jobType, copyLock.jobId, copyLock.lockTime, copyLock.lockDurationSeconds,
+        this(copyLock.jobIndexName, copyLock.jobId, copyLock.lockTime, copyLock.lockDurationSeconds,
             copyLock.released, seqNo, primaryTerm);
     }
 
@@ -63,7 +63,7 @@ public class LockModel implements ToXContentObject {
      * @param released boolean flag to indicate if the lock is released
      */
     public LockModel(final LockModel copyLock, final boolean released) {
-        this(copyLock.jobType, copyLock.jobId, copyLock.lockTime, copyLock.lockDurationSeconds,
+        this(copyLock.jobIndexName, copyLock.jobId, copyLock.lockTime, copyLock.lockDurationSeconds,
             released, copyLock.seqNo, copyLock.primaryTerm);
     }
 
@@ -77,18 +77,18 @@ public class LockModel implements ToXContentObject {
      */
     public LockModel(final LockModel copyLock,
                      final Instant updateLockTime, final long lockDurationSeconds, final boolean released) {
-        this(copyLock.jobType, copyLock.jobId, updateLockTime, lockDurationSeconds, released, copyLock.seqNo, copyLock.primaryTerm);
+        this(copyLock.jobIndexName, copyLock.jobId, updateLockTime, lockDurationSeconds, released, copyLock.seqNo, copyLock.primaryTerm);
     }
 
-    public LockModel(String jobType, String jobId, Instant lockTime, long lockDurationSeconds, boolean released) {
-        this(jobType, jobId, lockTime, lockDurationSeconds, released,
+    public LockModel(String jobIndexName, String jobId, Instant lockTime, long lockDurationSeconds, boolean released) {
+        this(jobIndexName, jobId, lockTime, lockDurationSeconds, released,
             SequenceNumbers.UNASSIGNED_SEQ_NO, SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
     }
 
-    public LockModel(String jobType, String jobId, Instant lockTime,
+    public LockModel(String jobIndexName, String jobId, Instant lockTime,
                      long lockDurationSeconds, boolean released, long seqNo, long primaryTerm) {
-        this.lockId = jobType + LOCK_ID_DELIMITR + jobId;
-        this.jobType = jobType;
+        this.lockId = jobIndexName + LOCK_ID_DELIMITR + jobId;
+        this.jobIndexName = jobIndexName;
         this.jobId = jobId;
         this.lockTime = lockTime;
         this.lockDurationSeconds = lockDurationSeconds;
@@ -97,12 +97,12 @@ public class LockModel implements ToXContentObject {
         this.primaryTerm = primaryTerm;
     }
 
-    public static String generateLockId(String jobType, String jobId) {
-        return jobType + LOCK_ID_DELIMITR + jobId;
+    public static String generateLockId(String jobIndexName, String jobId) {
+        return jobIndexName + LOCK_ID_DELIMITR + jobId;
     }
 
     public static LockModel parse(final XContentParser parser, long seqNo, long primaryTerm) throws IOException {
-        String jobType = null;
+        String jobIndexName = null;
         String jobId = null;
         Instant lockTime = null;
         Long lockDurationSecond = null;
@@ -113,8 +113,8 @@ public class LockModel implements ToXContentObject {
             String fieldName = parser.currentName();
             parser.nextToken();
             switch (fieldName) {
-                case JOB_TYPE:
-                    jobType = parser.text();
+                case JOB_INDEX_NAME:
+                    jobIndexName = parser.text();
                     break;
                 case JOB_ID:
                     jobId = parser.text();
@@ -134,7 +134,7 @@ public class LockModel implements ToXContentObject {
         }
 
         return new LockModel(
-            requireNonNull(jobType, "JobType cannot be null"),
+            requireNonNull(jobIndexName, "JobIndexName cannot be null"),
             requireNonNull(jobId, "JobId cannot be null"),
             requireNonNull(lockTime, "lockTime cannot be null"),
             requireNonNull(lockDurationSecond, "lockDurationSeconds cannot be null"),
@@ -146,7 +146,7 @@ public class LockModel implements ToXContentObject {
 
     @Override public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
         builder.startObject()
-            .field(JOB_TYPE, this.jobType)
+            .field(JOB_INDEX_NAME, this.jobIndexName)
             .field(JOB_ID, this.jobId)
             .field(LOCK_TIME, this.lockTime.getEpochSecond())
             .field(LOCK_DURATION, this.lockDurationSeconds)
@@ -163,8 +163,8 @@ public class LockModel implements ToXContentObject {
         return lockId;
     }
 
-    public String getJobType() {
-        return jobType;
+    public String getJobIndexName() {
+        return jobIndexName;
     }
 
     public String getJobId() {
@@ -189,5 +189,9 @@ public class LockModel implements ToXContentObject {
 
     public long getPrimaryTerm() {
         return primaryTerm;
+    }
+
+    public boolean isExpired() {
+        return lockTime.getEpochSecond() + lockDurationSeconds < Instant.now().getEpochSecond();
     }
 }

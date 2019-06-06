@@ -13,9 +13,10 @@
  *   permissions and limitations under the License.
  */
 
-package com.amazon.opendistroforelasticsearch.jobscheduler.utils;
+package com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils;
 
-import com.amazon.opendistroforelasticsearch.jobscheduler.model.lock.LockModel;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.LockModel;
+import com.cronutils.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -37,6 +38,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -48,7 +50,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
-public class LockService {
+public final class LockService {
     private static final Logger logger = LogManager.getLogger(LockService.class);
     /**
      * This should go away starting ES 7. We use "_doc" for future compatibility as described here:
@@ -62,7 +64,7 @@ public class LockService {
     private boolean isIndexInitialized;
 
     // This is used in tests to control time.
-    private Instant testInstant;
+    private Instant testInstant = null;
 
     public LockService(final Client client, final ClusterService clusterService) {
         this.client = client;
@@ -100,47 +102,40 @@ public class LockService {
         }
     }
 
-    public LockModel acquireLock(final String jobType, final String jobId, final long lockDurationSecond) {
+    public LockModel acquireLock(final String jobIndexName, final String jobId, final long lockDurationSecond) {
         if (!isIndexInitialized) {
             isIndexInitialized = createLockIndex();
         }
         try {
-            LockModel existingLock = findLock(LockModel.generateLockId(jobType, jobId));
+            LockModel existingLock = findLock(LockModel.generateLockId(jobIndexName, jobId));
             if (existingLock != null) {
                 if (isLockReleasedOrExpired(existingLock)) {
                     // Lock is expired. Attempt to acquire lock.
-                    logger.debug("lock is expired: " + existingLock);
+                    logger.debug("lock is released or expired: " + existingLock);
                     LockModel updateLock = new LockModel(existingLock, getNow(), lockDurationSecond, false);
                     return updateLock(updateLock);
                 } else {
-                    logger.debug("Lock is not expired. " + existingLock);
+                    logger.debug("Lock is NOT released or expired. " + existingLock);
                     // Lock is still not expired. Return null as we cannot acquire lock.
                     return null;
                 }
             } else {
                 // There is no lock object and it is first time. Create new lock.
-                LockModel tempLock = new LockModel(jobType, jobId, getNow(), lockDurationSecond, false);
+                LockModel tempLock = new LockModel(jobIndexName, jobId, getNow(), lockDurationSecond, false);
                 logger.debug("Lock does not exist. Creating new lock" + tempLock);
                 return createLock(tempLock);
             }
         } catch (VersionConflictEngineException e) {
             logger.debug("could not acquire lock {}", e.getMessage());
             return null;
-        } catch (IOException e) {
-            logger.info("IOException", e);
-            throw new IllegalArgumentException("IOException", e);
-        } catch (Exception e) {
-            logger.info("Exception", e);
-            throw new IllegalArgumentException("Exception", e);
         }
     }
 
     private boolean isLockReleasedOrExpired(final LockModel lock) {
-        return lock.isReleased() ||
-            lock.getLockTime().getEpochSecond() + lock.getLockDurationSeconds() < getNow().getEpochSecond();
+        return lock.isReleased() || lock.isExpired();
     }
 
-    private LockModel updateLock(final LockModel updateLock) throws IOException {
+    private LockModel updateLock(final LockModel updateLock) {
         try {
             UpdateRequest updateRequest = new UpdateRequest()
                 .index(LOCK_INDEX_NAME)
@@ -158,11 +153,13 @@ public class LockService {
         } catch (DocumentMissingException e) {
             logger.debug("Document is deleted. This happens if the job is already removed and this is the last run." +
                 "{}", e.getMessage());
+        } catch (IOException e) {
+            logger.error("IOException occurred updating lock.", e);
         }
         return null;
     }
 
-    private LockModel createLock(final LockModel tempLock) throws IOException {
+    private LockModel createLock(final LockModel tempLock) {
         try {
             final IndexRequest request = new IndexRequest(LOCK_INDEX_NAME)
                 .id(tempLock.getLockId())
@@ -174,8 +171,10 @@ public class LockService {
             return new LockModel(tempLock, indexResponse.getSeqNo(), indexResponse.getPrimaryTerm());
         } catch (VersionConflictEngineException e) {
             logger.debug("Lock is already created. {}", e.getMessage());
-            return null;
+        } catch (IOException e) {
+            logger.error("IOException occurred creating lock", e);
         }
+        return null;
     }
 
     private LockModel findLock(final String lockId) {
@@ -190,34 +189,35 @@ public class LockService {
                 parser.nextToken();
                 return LockModel.parse(parser, getResponse.getSeqNo(), getResponse.getPrimaryTerm());
             } catch (IOException e) {
+                logger.error("IOException occurred finding lock", e);
                 return null;
             }
         }
     }
 
     public boolean release(final LockModel lock) {
-        try {
-            if (lock == null) {
-                logger.info("Lock is null. Nothing to release.");
-                return false;
-            }
-
-            final LockModel releaseLock = new LockModel(lock, true);
-            final LockModel releasedLock = updateLock(releaseLock);
-            return releasedLock != null;
-        } catch (IOException e) {
-            logger.info("IOException", e);
-            throw new IllegalArgumentException("IOException", e);
-        } catch (Exception e) {
-            logger.info("Exception", e);
-            throw new IllegalArgumentException("Exception", e);
+        if (lock == null) {
+            logger.info("Lock is null. Nothing to release.");
+            return false;
         }
+
+        logger.debug("Releasing lock: " + lock);
+        final LockModel lockToRelease = new LockModel(lock, true);
+        final LockModel releasedLock = updateLock(lockToRelease);
+        return releasedLock != null;
     }
 
     public boolean deleteLock(final String lockId) {
-        DeleteRequest deleteRequest = new DeleteRequest(LOCK_INDEX_NAME).id(lockId);
-        DeleteResponse deleteResponse = client.delete(deleteRequest).actionGet();
-        return deleteResponse.getResult() == DocWriteResponse.Result.DELETED;
+        try {
+            DeleteRequest deleteRequest = new DeleteRequest(LOCK_INDEX_NAME).id(lockId);
+            DeleteResponse deleteResponse = client.delete(deleteRequest).actionGet();
+            return deleteResponse.getResult() == DocWriteResponse.Result.DELETED ||
+                deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND;
+        } catch (IndexNotFoundException e){
+            logger.debug("Index is not found to delete lock. {}", e.getMessage());
+            // Index does not exist. There is nothing to delete.
+        }
+        return true;
     }
 
     private Instant getNow() {
