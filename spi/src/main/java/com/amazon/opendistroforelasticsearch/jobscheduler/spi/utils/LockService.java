@@ -61,7 +61,6 @@ public final class LockService {
 
     private final Client client;
     private final ClusterService clusterService;
-    private boolean isIndexInitialized;
 
     // This is used in tests to control time.
     private Instant testInstant = null;
@@ -69,7 +68,6 @@ public final class LockService {
     public LockService(final Client client, final ClusterService clusterService) {
         this.client = client;
         this.clusterService = clusterService;
-        this.isIndexInitialized = false;
     }
 
     private String lockMapping() {
@@ -84,6 +82,10 @@ public final class LockService {
         } catch (IOException e) {
             throw new IllegalArgumentException("Lock Mapping cannot be read correctly.");
         }
+    }
+
+    public boolean lockIndexExist() {
+        return clusterService.state().routingTable().hasIndex(LOCK_INDEX_NAME);
     }
 
     @VisibleForTesting
@@ -103,9 +105,10 @@ public final class LockService {
     }
 
     public LockModel acquireLock(final String jobIndexName, final String jobId, final long lockDurationSecond) {
-        if (!isIndexInitialized) {
-            isIndexInitialized = createLockIndex();
+        if (!lockIndexExist()) {
+            createLockIndex();
         }
+
         try {
             LockModel existingLock = findLock(LockModel.generateLockId(jobIndexName, jobId));
             if (existingLock != null) {
