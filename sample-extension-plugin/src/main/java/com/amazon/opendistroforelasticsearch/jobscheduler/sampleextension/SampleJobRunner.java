@@ -96,11 +96,7 @@ public class SampleJobRunner implements ScheduledJobRunner {
         Runnable runnable = () -> {
             LockModel lock = null;
             if (jobParameter.getLockDurationSeconds() != null) {
-                lock = lockService.acquireLock(
-                    SampleExtensionPlugin.JOB_INDEX_NAME,
-                    context.getJobId(),
-                    jobParameter.getLockDurationSeconds()
-                );
+                lock = lockService.acquireLock(jobParameter, context);
 
                 if (lock == null) {
                     return;

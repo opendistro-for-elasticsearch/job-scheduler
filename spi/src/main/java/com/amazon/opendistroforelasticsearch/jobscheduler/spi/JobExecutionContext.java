@@ -23,12 +23,15 @@ public class JobExecutionContext {
     private final Instant expectedExecutionTime;
     private final JobDocVersion jobVersion;
     private final LockService lockService;
+    private final String jobIndexName;
     private final String jobId;
 
-    public JobExecutionContext(Instant expectedExecutionTime, JobDocVersion jobVersion, LockService lockService, String jobId) {
+    public JobExecutionContext(Instant expectedExecutionTime, JobDocVersion jobVersion, LockService lockService,
+                               String jobIndexName, String jobId) {
         this.expectedExecutionTime = expectedExecutionTime;
         this.jobVersion = jobVersion;
         this.lockService = lockService;
+        this.jobIndexName = jobIndexName;
         this.jobId = jobId;
     }
 
@@ -42,6 +45,10 @@ public class JobExecutionContext {
 
     public LockService getLockService() {
         return this.lockService;
+    }
+
+    public String getJobIndexName() {
+        return this.jobIndexName;
     }
 
     public String getJobId() {

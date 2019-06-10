@@ -158,8 +158,8 @@ public class JobScheduler {
             this.reschedule(jobParameter, jobInfo, jobRunner, version);
 
             // invoke job runner
-            JobExecutionContext context =
-                new JobExecutionContext(jobInfo.getExpectedPreviousExecutionTime(), version, lockService, jobInfo.getJobId());
+            JobExecutionContext context = new JobExecutionContext(jobInfo.getExpectedPreviousExecutionTime(), version, lockService,
+                jobInfo.getIndexName(), jobInfo.getJobId());
 
             jobRunner.runJob(jobParameter, context);
         };

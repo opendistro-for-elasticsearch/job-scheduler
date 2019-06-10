@@ -15,7 +15,9 @@
 
 package com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils;
 
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobExecutionContext;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.LockModel;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.cronutils.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -104,7 +106,14 @@ public final class LockService {
         }
     }
 
-    public LockModel acquireLock(final String jobIndexName, final String jobId, final long lockDurationSecond) {
+    public LockModel acquireLock(final ScheduledJobParameter jobParameter, final JobExecutionContext context) {
+        final String jobIndexName = context.getJobIndexName();
+        final String jobId = context.getJobId();
+        if (jobParameter.getLockDurationSeconds() == null){
+            throw new IllegalArgumentException("Job LockDuration should not be null");
+        }
+        final long lockDurationSecond = jobParameter.getLockDurationSeconds();
+
         if (!lockIndexExist()) {
             createLockIndex();
         }
