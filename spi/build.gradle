@@ -44,3 +44,8 @@ shadowJar {
     relocate 'com.cronutils', 'com.amazon.opendistroforelasticsearch.jobscheduler.repackage.com.cronutils'
     relocate 'org.slf4j', 'com.amazon.opendistroforelasticsearch.jobscheduler.repackage.org.slf4j' // dependency of cron-utils
 }
+
+test {
+    // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
+    systemProperty 'tests.security.manager', 'false'
+}

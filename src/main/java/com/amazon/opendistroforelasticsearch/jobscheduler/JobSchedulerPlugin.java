@@ -21,6 +21,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParser
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.Schedule;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.ScheduleParser;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.sweeper.JobSweeper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,6 +63,7 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
 
     private JobSweeper sweeper;
     private JobScheduler scheduler;
+    private LockService lockService;
     private Map<String, ScheduledJobProvider> indexToJobProviders;
     private Set<String> indicesToListen;
 
@@ -75,8 +77,10 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
                            ResourceWatcherService resourceWatcherService, ScriptService scriptService,
                            NamedXContentRegistry xContentRegistry, Environment environment,
                            NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
-        this.scheduler = new JobScheduler(threadPool);
-        this.sweeper = initSweeper(environment.settings(), client, clusterService, threadPool, xContentRegistry, this.scheduler);
+        this.lockService = new LockService(client, clusterService);
+        this.scheduler = new JobScheduler(threadPool, this.lockService);
+        this.sweeper = initSweeper(environment.settings(), client, clusterService, threadPool, xContentRegistry,
+                                   this.scheduler, this.lockService);
         clusterService.addListener(this.sweeper);
         clusterService.addLifecycleListener(this.sweeper);
 
@@ -146,7 +150,8 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
     }
 
     private JobSweeper initSweeper(Settings settings, Client client, ClusterService clusterService, ThreadPool threadPool,
-                                   NamedXContentRegistry registry, JobScheduler scheduler) {
-        return new JobSweeper(settings, client, clusterService, threadPool, registry, this.indexToJobProviders, scheduler);
+                                   NamedXContentRegistry registry, JobScheduler scheduler, LockService lockService) {
+        return new JobSweeper(settings, client, clusterService, threadPool, registry,
+                              this.indexToJobProviders, scheduler, lockService);
     }
 }

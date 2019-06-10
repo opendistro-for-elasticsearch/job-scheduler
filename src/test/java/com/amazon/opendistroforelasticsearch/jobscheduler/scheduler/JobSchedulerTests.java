@@ -50,7 +50,7 @@ public class JobSchedulerTests {
 
     @Before
     public void setup() {
-        this.scheduler = new JobScheduler(this.threadPool);
+        this.scheduler = new JobScheduler(this.threadPool, null);
     }
 
     @Test
@@ -88,7 +88,7 @@ public class JobSchedulerTests {
 
     @Test
     public void testDeschedule_singleJob() {
-        JobSchedulingInfo jobInfo = new JobSchedulingInfo("job-id", null);
+        JobSchedulingInfo jobInfo = new JobSchedulingInfo("job-index", "job-id", null);
         Scheduler.ScheduledCancellable scheduledCancellable = Mockito.mock(Scheduler.ScheduledCancellable.class);
         jobInfo.setScheduledCancellable(scheduledCancellable);
         Mockito.when(scheduledCancellable.cancel()).thenReturn(false);
@@ -112,13 +112,13 @@ public class JobSchedulerTests {
     public void testDeschedule_bulk() {
         Assert.assertTrue(this.scheduler.bulkDeschedule("index-name", null).isEmpty());
 
-        JobSchedulingInfo jobInfo1 = new JobSchedulingInfo("job-id-1", null);
+        JobSchedulingInfo jobInfo1 = new JobSchedulingInfo("job-index", "job-id-1", null);
         Scheduler.ScheduledCancellable scheduledCancellable1 = Mockito.mock(Scheduler.ScheduledCancellable.class);
         jobInfo1.setScheduledCancellable(scheduledCancellable1);
         Mockito.when(scheduledCancellable1.cancel()).thenReturn(false);
         this.scheduler.getScheduledJobInfo().addJob("index-name", "job-id-1", jobInfo1);
 
-        JobSchedulingInfo jobInfo2 = new JobSchedulingInfo("job-id-2", null);
+        JobSchedulingInfo jobInfo2 = new JobSchedulingInfo("job-index", "job-id-2", null);
         Scheduler.ScheduledCancellable scheduledCancellable2 = Mockito.mock(Scheduler.ScheduledCancellable.class);
         jobInfo2.setScheduledCancellable(scheduledCancellable2);
         Mockito.when(scheduledCancellable2.cancel()).thenReturn(true);
@@ -152,7 +152,7 @@ public class JobSchedulerTests {
         Schedule schedule = Mockito.mock(Schedule.class);
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
                 Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), schedule, false);
-        JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-id", jobParameter);
+        JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-index", "job-id", jobParameter);
         Instant now = Instant.now();
         jobSchedulingInfo.setDescheduled(true);
 
@@ -166,7 +166,7 @@ public class JobSchedulerTests {
         Schedule schedule = Mockito.mock(Schedule.class);
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
                 Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), schedule, false);
-        JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-id", jobParameter);
+        JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-index", "job-id", jobParameter);
         Instant now = Instant.now();
         jobSchedulingInfo.setDescheduled(false);
 

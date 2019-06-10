@@ -20,6 +20,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobExecutionContex
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,11 +46,13 @@ public class JobScheduler {
     private ThreadPool threadPool;
     private ScheduledJobInfo scheduledJobInfo;
     private Clock clock;
+    private final LockService lockService;
 
-    public JobScheduler(ThreadPool threadPool) {
+    public JobScheduler(ThreadPool threadPool, final LockService lockService) {
         this.threadPool = threadPool;
         this.scheduledJobInfo = new ScheduledJobInfo();
         this.clock = Clock.systemDefaultZone();
+        this.lockService = lockService;
     }
 
     @VisibleForTesting
@@ -76,7 +79,7 @@ public class JobScheduler {
         synchronized (this.scheduledJobInfo.getJobsByIndex(indexName)) {
             jobInfo = this.scheduledJobInfo.getJobInfo(indexName, docId);
             if (jobInfo == null) {
-                jobInfo = new JobSchedulingInfo(docId, scheduledJobParameter);
+                jobInfo = new JobSchedulingInfo(indexName, docId, scheduledJobParameter);
                 this.scheduledJobInfo.addJob(indexName, docId, jobInfo);
             }
             if (jobInfo.getScheduledCancellable() != null) {
@@ -155,9 +158,9 @@ public class JobScheduler {
             this.reschedule(jobParameter, jobInfo, jobRunner, version);
 
             // invoke job runner
-            JobExecutionContext context = new JobExecutionContext();
-            context.setExpectedExecutionTime(jobInfo.getExpectedPreviousExecutionTime());
-            context.setJobVersion(version);
+            JobExecutionContext context = new JobExecutionContext(jobInfo.getExpectedPreviousExecutionTime(), version, lockService,
+                jobInfo.getIndexName(), jobInfo.getJobId());
+
             jobRunner.runJob(jobParameter, context);
         };
 

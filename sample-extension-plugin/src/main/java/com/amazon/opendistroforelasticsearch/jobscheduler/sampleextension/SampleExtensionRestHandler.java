@@ -70,14 +70,16 @@ public class SampleExtensionRestHandler extends BaseRestHandler {
             String indexName = request.param("index");
             String jobName = request.param("job_name");
             String interval = request.param("interval");
+            String lockDurationSecondsString = request.param("lock_duration_seconds");
+            Long lockDurationSeconds = lockDurationSecondsString != null ? Long.parseLong(lockDurationSecondsString) : null;
+
             if(id == null || indexName ==null) {
                 throw new IllegalArgumentException("Must specify id and index parameter");
             }
             SampleJobParameter jobParameter = new SampleJobParameter(id, jobName, indexName,
-                    new IntervalSchedule(Instant.now(), Integer.parseInt(interval), ChronoUnit.MINUTES));
+                    new IntervalSchedule(Instant.now(), Integer.parseInt(interval), ChronoUnit.MINUTES), lockDurationSeconds);
             IndexRequest indexRequest = new IndexRequest()
                     .index(SampleExtensionPlugin.JOB_INDEX_NAME)
-                    .type("_doc")
                     .id(id)
                     .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null));
 
@@ -106,7 +108,6 @@ public class SampleExtensionRestHandler extends BaseRestHandler {
             String id = request.param("id");
             DeleteRequest deleteRequest = new DeleteRequest()
                     .index(SampleExtensionPlugin.JOB_INDEX_NAME)
-                    .type("_doc")
                     .id(id);
 
             return restChannel -> {

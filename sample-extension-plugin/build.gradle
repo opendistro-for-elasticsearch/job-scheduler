@@ -39,3 +39,8 @@ integTestCluster {
     distribution = "oss-zip"
     plugin(rootProject.getPath())
 }
+
+run {
+    distribution = "oss-zip"
+    plugin(rootProject.getPath())
+}

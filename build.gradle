@@ -60,7 +60,6 @@ esplugin {
     classname 'com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerPlugin'
 }
 
-
 integTestRunner {
     // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
     systemProperty 'tests.security.manager', 'false'
@@ -89,7 +88,6 @@ allprojects {
 dependencies {
     compile project(path: ":${rootProject.name}-spi", configuration: 'shadow')
 }
-
 
 // RPM build
 apply plugin: 'nebula.ospackage'
