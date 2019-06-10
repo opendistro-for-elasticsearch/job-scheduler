@@ -259,7 +259,11 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        this.fullSweepExecutor.submit(this::sweepAllShards);
+        for (String indexName : indexToProviders.keySet()) {
+            if(event.indexRoutingTableChanged(indexName)) {
+                this.fullSweepExecutor.submit(() -> this.sweepIndex(indexName));
+            }
+        }
     }
 
     @VisibleForTesting
@@ -273,7 +277,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             TimeValue elapsedTime = getFullSweepElapsedTime();
             long delta = this.sweepPeriod.millis() - elapsedTime.millis();
             if (delta < 20L) {
-                this.fullSweepExecutor.submit(this::sweepAllShards);
+                this.fullSweepExecutor.submit(this::sweepAllJobIndices);
             }
         };
         this.scheduledFullSweep = this.threadPool.scheduleWithFixedDelay(scheduledSweep, sweepPeriod, ThreadPool.Names.SAME);
@@ -295,47 +299,51 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private void sweepAllShards() {
-        ClusterState clusterState = this.clusterService.state();
+    private void sweepAllJobIndices() {
         for (String indexName: this.indexToProviders.keySet()) {
-            if(!clusterState.routingTable().hasIndex(indexName)) {
-                // deschedule jobs for this index
-                for (ShardId shardId : this.sweptJobs.keySet()) {
-                    if(shardId.getIndexName().equals(indexName) && this.sweptJobs.containsKey(shardId)) {
-                        log.info("Descheduling jobs, shard {} index {} as the index is removed.", shardId.getId(), indexName);
-                        this.scheduler.bulkDeschedule(shardId.getIndexName(), this.sweptJobs.get(shardId).keySet());
-                    }
-                }
-                continue;
-            }
-            String localNodeId = clusterState.getNodes().getLocalNodeId();
-            Map<ShardId, List<ShardRouting>> localShards = this.getLocalShards(clusterState, localNodeId, indexName);
-
-            // deschedule jobs in removed shards
-            Iterator<Map.Entry<ShardId, ConcurrentHashMap<String, JobDocVersion>>> sweptJobIter = this.sweptJobs.entrySet().iterator();
-            while(sweptJobIter.hasNext()) {
-                Map.Entry<ShardId, ConcurrentHashMap<String, JobDocVersion>> entry = sweptJobIter.next();
-                if(entry.getKey().getIndexName().equals(indexName) && !localShards.containsKey(entry.getKey())) {
-                    log.info("Descheduling jobs of shard {} index {} as the shard is removed from this node.",
-                            entry.getKey().getId(), indexName);
-                    //shard is removed, deschedule jobs of this shard
-                    this.scheduler.bulkDeschedule(indexName, entry.getValue().keySet());
-                    sweptJobIter.remove();
-                }
-            }
-
-            // sweep each local shard
-            for (Map.Entry<ShardId, List<ShardRouting>> shard: localShards.entrySet()) {
-                try {
-                    List<ShardRouting> shardRoutingList = shard.getValue();
-                    List<String> shardNodeIds = shardRoutingList.stream().map(ShardRouting::currentNodeId).collect(Collectors.toList());
-                    sweepShard(shard.getKey(), new ShardNodes(localNodeId, shardNodeIds), null);
-                } catch (Exception e) {
-                    log.info("Error while sweeping shard {}, error message: {}", shard.getKey(), e.getMessage());
-                }
-            }
+            this.sweepIndex(indexName);
         }
         this.lastFullSweepTimeNano = System.nanoTime();
+    }
+
+    private void sweepIndex(String indexName) {
+        ClusterState clusterState = this.clusterService.state();
+        if(!clusterState.routingTable().hasIndex(indexName)) {
+            // deschedule jobs for this index
+            for (ShardId shardId : this.sweptJobs.keySet()) {
+                if(shardId.getIndexName().equals(indexName) && this.sweptJobs.containsKey(shardId)) {
+                    log.info("Descheduling jobs, shard {} index {} as the index is removed.", shardId.getId(), indexName);
+                    this.scheduler.bulkDeschedule(shardId.getIndexName(), this.sweptJobs.get(shardId).keySet());
+                }
+            }
+            return;
+        }
+        String localNodeId = clusterState.getNodes().getLocalNodeId();
+        Map<ShardId, List<ShardRouting>> localShards = this.getLocalShards(clusterState, localNodeId, indexName);
+
+        // deschedule jobs in removed shards
+        Iterator<Map.Entry<ShardId, ConcurrentHashMap<String, JobDocVersion>>> sweptJobIter = this.sweptJobs.entrySet().iterator();
+        while(sweptJobIter.hasNext()) {
+            Map.Entry<ShardId, ConcurrentHashMap<String, JobDocVersion>> entry = sweptJobIter.next();
+            if(entry.getKey().getIndexName().equals(indexName) && !localShards.containsKey(entry.getKey())) {
+                log.info("Descheduling jobs of shard {} index {} as the shard is removed from this node.",
+                        entry.getKey().getId(), indexName);
+                //shard is removed, deschedule jobs of this shard
+                this.scheduler.bulkDeschedule(indexName, entry.getValue().keySet());
+                sweptJobIter.remove();
+            }
+        }
+
+        // sweep each local shard
+        for (Map.Entry<ShardId, List<ShardRouting>> shard: localShards.entrySet()) {
+            try {
+                List<ShardRouting> shardRoutingList = shard.getValue();
+                List<String> shardNodeIds = shardRoutingList.stream().map(ShardRouting::currentNodeId).collect(Collectors.toList());
+                sweepShard(shard.getKey(), new ShardNodes(localNodeId, shardNodeIds), null);
+            } catch (Exception e) {
+                log.info("Error while sweeping shard {}, error message: {}", shard.getKey(), e.getMessage());
+            }
+        }
     }
 
     private void sweepShard(ShardId shardId, ShardNodes shardNodes, String startAfter) {
