@@ -106,6 +106,15 @@ public final class LockService {
         }
     }
 
+    /**
+     * Attempts to acquire lock the job. If the lock does not exists it attempts to create the lock document.
+     * If the Lock document exists, it will try to update and acquire lock.
+     *
+     * @param jobParameter a {@code ScheduledJobParameter} containing the lock duration.
+     * @param context a {@code JobExecutionContext} containing job index name and job id.
+     * @return {@code LockModel} object when lock is successfully acquired else return null.
+     * @throws IllegalArgumentException if the {@code ScheduledJobParameter} does not have {@code LockDurationSeconds}.
+     */
     public LockModel acquireLock(final ScheduledJobParameter jobParameter, final JobExecutionContext context) {
         final String jobIndexName = context.getJobIndexName();
         final String jobId = context.getJobId();
@@ -207,6 +216,13 @@ public final class LockService {
         }
     }
 
+    /**
+     * Attempt to release the lock.
+     * Most failure cases are due to {@code lock.seqNo} and {@code lock.primaryTerm} not matching with the existing document.
+     *
+     * @param lock a {@code LockModel} to be released.
+     * @return {@code true} if the lock is release. {@code false} if the lock release fails.
+     */
     public boolean release(final LockModel lock) {
         if (lock == null) {
             logger.info("Lock is null. Nothing to release.");
@@ -219,6 +235,13 @@ public final class LockService {
         return releasedLock != null;
     }
 
+    /**
+     * Attempt to delete lock.
+     * This should be called as part of clean up when the job for corresponding lock is deleted.
+     *
+     * @param lockId a {@code String} to be deleted.
+     * @return {@code true} if the lock is delete. {@code false} if the lock delete fails.
+     */
     public boolean deleteLock(final String lockId) {
         try {
             DeleteRequest deleteRequest = new DeleteRequest(LOCK_INDEX_NAME).id(lockId);
