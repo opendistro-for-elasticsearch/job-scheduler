@@ -22,9 +22,12 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParser;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -120,8 +123,9 @@ public class JobSweeperTests extends ESAllocationTestCase {
                 this.jobParser, this.jobRunner);
         Map<String, ScheduledJobProvider> jobProviderMap = new HashMap<>();
         jobProviderMap.put("index-name", jobProvider);
+
         sweeper = new JobSweeper(settings, this.client, this.clusterService, this.threadPool, xContentRegistry,
-                jobProviderMap, scheduler);
+                jobProviderMap, scheduler, new LockService(client, clusterService));
     }
 
     @Test
@@ -225,6 +229,11 @@ public class JobSweeperTests extends ESAllocationTestCase {
         Set<String> jobIdSet = new HashSet<>();
         jobIdSet.add("doc-id");
         Mockito.when(this.scheduler.getScheduledJobIds("index-name")).thenReturn(jobIdSet);
+
+        ActionFuture<DeleteResponse> actionFuture = Mockito.mock(ActionFuture.class);
+        Mockito.when(this.client.delete(Mockito.any())).thenReturn(actionFuture);
+        DeleteResponse response = new DeleteResponse(new ShardId(new Index("name","uuid"), 0), "type", "id", 1L, 2L, 3L, true);
+        Mockito.when(actionFuture.actionGet()).thenReturn(response);
 
         this.sweeper.postDelete(shardId, delete, deleteResult);
 
