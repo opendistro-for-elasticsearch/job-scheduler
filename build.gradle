@@ -110,7 +110,6 @@ afterEvaluate {
         dirMode 0755
 
         requires('elasticsearch-oss', versions.elasticsearch, EQUAL)
-        arch = 'NOARCH'
         packager = 'Amazon'
         vendor = 'Amazon'
         os = 'LINUX'
@@ -126,6 +125,7 @@ afterEvaluate {
     }
 
     buildRpm {
+        arch = 'NOARCH'
         archiveName "${packageName}-${version}.rpm"
         dependsOn 'assemble'
     }
