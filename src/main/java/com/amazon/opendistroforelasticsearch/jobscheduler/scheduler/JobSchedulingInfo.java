@@ -21,6 +21,8 @@ import org.elasticsearch.threadpool.Scheduler;
 import java.time.Instant;
 
 class JobSchedulingInfo {
+
+    private String indexName;
     private String jobId;
     private ScheduledJobParameter jobParameter;
     private boolean descheduled = false;
@@ -29,9 +31,14 @@ class JobSchedulingInfo {
     private Instant expectedExecutionTime;
     private Scheduler.ScheduledCancellable scheduledCancellable;
 
-    JobSchedulingInfo(String jobId, ScheduledJobParameter jobParameter) {
+    JobSchedulingInfo(String indexName, String jobId, ScheduledJobParameter jobParameter) {
+        this.indexName = indexName;
         this.jobId = jobId;
         this.jobParameter = jobParameter;
+    }
+
+    public String getIndexName() {
+        return indexName;
     }
 
     public String getJobId() {
