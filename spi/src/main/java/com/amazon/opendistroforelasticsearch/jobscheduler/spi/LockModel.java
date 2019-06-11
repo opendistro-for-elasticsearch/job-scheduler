@@ -24,6 +24,7 @@ import org.elasticsearch.index.seqno.SequenceNumbers;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
@@ -193,5 +194,25 @@ public final class LockModel implements ToXContentObject {
 
     public boolean isExpired() {
         return lockTime.getEpochSecond() + lockDurationSeconds < Instant.now().getEpochSecond();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LockModel lockModel = (LockModel) o;
+        return lockDurationSeconds == lockModel.lockDurationSeconds &&
+                released == lockModel.released &&
+                seqNo == lockModel.seqNo &&
+                primaryTerm == lockModel.primaryTerm &&
+                lockId.equals(lockModel.lockId) &&
+                jobIndexName.equals(lockModel.jobIndexName) &&
+                jobId.equals(lockModel.jobId) &&
+                lockTime.equals(lockModel.lockTime);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(lockId, jobIndexName, jobId, lockTime, lockDurationSeconds, released, seqNo, primaryTerm);
     }
 }
