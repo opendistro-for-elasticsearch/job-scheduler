@@ -192,7 +192,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
 
         ShardNodes shardNodes = new ShardNodes(localNodeId, shardNodeIds);
         if (shardNodes.isOwningNode(index.id())) {
-            this.sweep(shardId, index.id(), index.source(), new JobDocVersion(result.getTerm(), result.getSeqNo(),result.getVersion()));
+            this.sweep(shardId, index.id(), index.source(), new JobDocVersion(result.getTerm(), result.getSeqNo(), result.getVersion()));
         }
     }
 
@@ -206,7 +206,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             return;
         }
 
-        if(this.scheduler.getScheduledJobIds(shardId.getIndexName()).contains(delete.id())) {
+        if (this.scheduler.getScheduledJobIds(shardId.getIndexName()).contains(delete.id())) {
             log.info("Descheduling job {} on index {}", delete.id(), shardId.getIndexName());
             this.scheduler.deschedule(shardId.getIndexName(), delete.id());
             lockService.deleteLock(LockModel.generateLockId(shardId.getIndexName(), delete.id()));
@@ -260,7 +260,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         for (String indexName : indexToProviders.keySet()) {
-            if(event.indexRoutingTableChanged(indexName)) {
+            if (event.indexRoutingTableChanged(indexName)) {
                 this.fullSweepExecutor.submit(() -> this.sweepIndex(indexName));
             }
         }
@@ -300,7 +300,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
     }
 
     private void sweepAllJobIndices() {
-        for (String indexName: this.indexToProviders.keySet()) {
+        for (String indexName : this.indexToProviders.keySet()) {
             this.sweepIndex(indexName);
         }
         this.lastFullSweepTimeNano = System.nanoTime();
@@ -308,10 +308,10 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
 
     private void sweepIndex(String indexName) {
         ClusterState clusterState = this.clusterService.state();
-        if(!clusterState.routingTable().hasIndex(indexName)) {
+        if (!clusterState.routingTable().hasIndex(indexName)) {
             // deschedule jobs for this index
             for (ShardId shardId : this.sweptJobs.keySet()) {
-                if(shardId.getIndexName().equals(indexName) && this.sweptJobs.containsKey(shardId)) {
+                if (shardId.getIndexName().equals(indexName) && this.sweptJobs.containsKey(shardId)) {
                     log.info("Descheduling jobs, shard {} index {} as the index is removed.", shardId.getId(), indexName);
                     this.scheduler.bulkDeschedule(shardId.getIndexName(), this.sweptJobs.get(shardId).keySet());
                 }
@@ -323,9 +323,9 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
 
         // deschedule jobs in removed shards
         Iterator<Map.Entry<ShardId, ConcurrentHashMap<String, JobDocVersion>>> sweptJobIter = this.sweptJobs.entrySet().iterator();
-        while(sweptJobIter.hasNext()) {
+        while (sweptJobIter.hasNext()) {
             Map.Entry<ShardId, ConcurrentHashMap<String, JobDocVersion>> entry = sweptJobIter.next();
-            if(entry.getKey().getIndexName().equals(indexName) && !localShards.containsKey(entry.getKey())) {
+            if (entry.getKey().getIndexName().equals(indexName) && !localShards.containsKey(entry.getKey())) {
                 log.info("Descheduling jobs of shard {} index {} as the shard is removed from this node.",
                         entry.getKey().getId(), indexName);
                 //shard is removed, deschedule jobs of this shard
@@ -335,7 +335,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
         }
 
         // sweep each local shard
-        for (Map.Entry<ShardId, List<ShardRouting>> shard: localShards.entrySet()) {
+        for (Map.Entry<ShardId, List<ShardRouting>> shard : localShards.entrySet()) {
             try {
                 List<ShardRouting> shardRoutingList = shard.getValue();
                 List<String> shardNodeIds = shardRoutingList.stream().map(ShardRouting::currentNodeId).collect(Collectors.toList());
@@ -351,14 +351,14 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                 this.sweptJobs.get(shardId) : new ConcurrentHashMap<>();
 
         for (String jobId : currentJobs.keySet()) {
-            if(!shardNodes.isOwningNode(jobId)) {
+            if (!shardNodes.isOwningNode(jobId)) {
                 this.scheduler.deschedule(shardId.getIndexName(), jobId);
                 currentJobs.remove(jobId);
             }
         }
 
         String searchAfter = startAfter == null ? "" : startAfter;
-        while(searchAfter != null) {
+        while (searchAfter != null) {
             SearchRequest jobSearchRequest = new SearchRequest()
                     .indices(shardId.getIndexName())
                     .preference("_shards:" + shardId.id() + "|_only_local")
@@ -376,9 +376,9 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                 log.error("Error sweeping shard {}, failed querying jobs on this shard", shardId);
                 return;
             }
-            for (SearchHit hit: response.getHits()) {
+            for (SearchHit hit : response.getHits()) {
                 String jobId = hit.getId();
-                if(shardNodes.isOwningNode(jobId)) {
+                if (shardNodes.isOwningNode(jobId)) {
                     this.sweep(shardId, jobId, hit.getSourceRef(), new JobDocVersion(hit.getPrimaryTerm(), hit.getSeqNo(),
                             hit.getVersion()));
                 }
@@ -392,7 +392,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
         }
     }
 
-    private<T, R> R retry(Function<T, R> function, T param, BackoffPolicy backoffPolicy) {
+    private <T, R> R retry(Function<T, R> function, T param, BackoffPolicy backoffPolicy) {
         Set<RestStatus> retryalbeStatus = Sets.newHashSet(RestStatus.BAD_GATEWAY, RestStatus.GATEWAY_TIMEOUT,
                 RestStatus.SERVICE_UNAVAILABLE);
         Iterator<TimeValue> iter = backoffPolicy.iterator();
@@ -400,7 +400,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             try {
                 return function.apply(param);
             } catch (ElasticsearchException e) {
-                if(iter.hasNext() && retryalbeStatus.contains(e.status())) {
+                if (iter.hasNext() && retryalbeStatus.contains(e.status())) {
                     try {
                         Thread.sleep(iter.next().millis());
                     } catch (InterruptedException ex) {
@@ -410,7 +410,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                     throw e;
                 }
             }
-        } while(true);
+        } while (true);
     }
 
     private static class ShardNodes {
