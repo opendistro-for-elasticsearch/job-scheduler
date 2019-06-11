@@ -224,7 +224,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
         }
         jobVersionMap.compute(docId, (id, currentVersion) -> {
             if (version.compareTo(currentVersion) <= 0) {
-                log.info("Skipping job {}, new version {} <= current version {}", docId, version, currentVersion);
+                log.debug("Skipping job {}, new version {} <= current version {}", docId, version, currentVersion);
                 return currentVersion;
             }
 

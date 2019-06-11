@@ -225,7 +225,7 @@ public final class LockService {
      */
     public boolean release(final LockModel lock) {
         if (lock == null) {
-            logger.info("Lock is null. Nothing to release.");
+            logger.debug("Lock is null. Nothing to release.");
             return false;
         }
 
