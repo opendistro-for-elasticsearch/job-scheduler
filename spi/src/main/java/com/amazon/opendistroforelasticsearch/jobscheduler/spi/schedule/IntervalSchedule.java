@@ -16,6 +16,7 @@
 package com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule;
 
 import com.cronutils.utils.VisibleForTesting;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -27,6 +28,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -138,5 +140,26 @@ public class IntervalSchedule implements Schedule {
     @VisibleForTesting
     void setClock(Clock clock) {
         this.clock = clock;
+    }
+
+    @Override
+    public String toString() {
+        return Strings.toString(this, false, true);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        IntervalSchedule intervalSchedule = (IntervalSchedule) o;
+        return startTime.equals(intervalSchedule.startTime) &&
+                interval == intervalSchedule.interval &&
+                unit == intervalSchedule.unit &&
+                intervalInMillis == intervalSchedule.intervalInMillis;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(startTime, interval, unit, intervalInMillis);
     }
 }
