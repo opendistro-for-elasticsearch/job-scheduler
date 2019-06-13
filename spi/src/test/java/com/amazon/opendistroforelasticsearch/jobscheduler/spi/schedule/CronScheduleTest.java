@@ -149,4 +149,15 @@ public class CronScheduleTest {
         Assert.assertEquals(expectedJsonStr,
                 XContentHelper.toXContent(schedule, XContentType.JSON, false).utf8ToString());
     }
+
+    @Test
+    public void testCronScheduleEqualsAndHashCode() {
+        CronSchedule cronScheduleOne = new CronSchedule("* * * * *", ZoneId.of("PST8PDT"));
+        CronSchedule cronScheduleTwo = new CronSchedule("* * * * *", ZoneId.of("PST8PDT"));
+        CronSchedule cronScheduleThree = new CronSchedule("1 * * * *", ZoneId.of("PST8PDT"));
+
+        Assert.assertEquals(cronScheduleOne, cronScheduleTwo);
+        Assert.assertNotEquals(cronScheduleOne, cronScheduleThree);
+        Assert.assertEquals(cronScheduleOne.hashCode(), cronScheduleTwo.hashCode());
+    }
 }
