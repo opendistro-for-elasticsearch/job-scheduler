@@ -28,6 +28,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
@@ -59,7 +60,9 @@ public class IntervalSchedule implements Schedule {
 
     public IntervalSchedule(Instant startTime, int interval, ChronoUnit unit) {
         if (!SUPPORTED_UNITS.contains(unit)) {
-            throw new IllegalArgumentException(String.format("Interval unit %s is not supported, expects %s", unit, SUPPORTED_UNITS));
+            throw new IllegalArgumentException(
+                    String.format(Locale.ROOT, "Interval unit %s is not supported, expects %s",
+                            unit, SUPPORTED_UNITS));
         }
         this.startTime = startTime;
         this.interval = interval;
