@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 
 /**
  * Schedule XContent parser.
@@ -43,7 +44,9 @@ public class ScheduleParser {
                         switch (cronField) {
                             case CronSchedule.EXPRESSION_FIELD: expression = parser.text(); break;
                             case CronSchedule.TIMEZONE_FIELD: timezone = ZoneId.of(parser.text()); break;
-                            default: throw new IllegalArgumentException(String.format("Unknown cron field %s", cronField));
+                            default:
+                                throw new IllegalArgumentException(
+                                        String.format(Locale.ROOT, "Unknown cron field %s", cronField));
                         }
                     }
                     XContentParserUtils.ensureExpectedToken(XContentParser.Token.END_OBJECT, parser.currentToken(), parser::getTokenLocation);
@@ -59,14 +62,18 @@ public class ScheduleParser {
                         switch (intervalField) {
                             case IntervalSchedule.START_TIME_FIELD: startTime = Instant.ofEpochMilli(parser.longValue()); break;
                             case IntervalSchedule.PERIOD_FIELD: period = parser.intValue(); break;
-                            case IntervalSchedule.UNIT_FIELD: unit = ChronoUnit.valueOf(parser.text().toUpperCase()); break;
-                            default: throw new IllegalArgumentException(String.format("Unknown interval field %s", intervalField));
+                            case IntervalSchedule.UNIT_FIELD: unit = ChronoUnit.valueOf(parser.text().toUpperCase(Locale.ROOT)); break;
+                            default:
+                                throw new IllegalArgumentException(
+                                        String.format(Locale.ROOT, "Unknown interval field %s", intervalField));
                         }
                     }
                     XContentParserUtils.ensureExpectedToken(XContentParser.Token.END_OBJECT, parser.currentToken(), parser::getTokenLocation);
                     parser.nextToken();
                     return new IntervalSchedule(startTime, period, unit);
-                default: throw new IllegalArgumentException(String.format("Unknown schedule type %s", fieldName));
+                default:
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ROOT, "Unknown schedule type %s", fieldName));
             }
         }
         throw new IllegalArgumentException("Invalid schedule document object.");
