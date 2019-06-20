@@ -236,7 +236,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                     ScheduledJobProvider provider = this.indexToProviders.get(shardId.getIndexName());
                     XContentParser parser = XContentHelper.createParser(this.xContentRegistry, LoggingDeprecationHandler.INSTANCE,
                             jobSource, XContentType.JSON);
-                    ScheduledJobParameter jobParameter = provider.getJobParser().parse(parser, docId, version.getVersion());
+                    ScheduledJobParameter jobParameter = provider.getJobParser().parse(parser, docId, version);
                     if (jobParameter == null) {
                         // allow parser to return null, which means this is not a scheduled job document.
                         return null;

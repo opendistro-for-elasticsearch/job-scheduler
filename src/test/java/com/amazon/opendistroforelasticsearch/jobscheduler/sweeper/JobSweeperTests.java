@@ -261,7 +261,8 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         ScheduledJobParameter mockJobParameter = Mockito.mock(ScheduledJobParameter.class);
         Mockito.when(mockJobParameter.isEnabled()).thenReturn(true);
-        Mockito.when(this.jobParser.parse(Mockito.any(), Mockito.anyString(), Mockito.anyLong())).thenReturn(mockJobParameter);
+        Mockito.when(this.jobParser.parse(Mockito.any(), Mockito.anyString(), Mockito.any(JobDocVersion.class)))
+            .thenReturn(mockJobParameter);
 
         this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
         Mockito.verify(this.scheduler).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any(),
