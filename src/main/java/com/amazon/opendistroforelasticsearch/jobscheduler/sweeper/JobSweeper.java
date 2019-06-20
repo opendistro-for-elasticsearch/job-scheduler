@@ -214,7 +214,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
     }
 
     @VisibleForTesting
-    void sweep(ShardId shardId, String docId, BytesReference jobSource, JobDocVersion version) {
+    void sweep(ShardId shardId, String docId, BytesReference jobSource, JobDocVersion jobDocVersion) {
         ConcurrentHashMap<String, JobDocVersion> jobVersionMap;
         if (this.sweptJobs.containsKey(shardId)) {
             jobVersionMap = this.sweptJobs.get(shardId);
@@ -222,10 +222,10 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
             jobVersionMap = new ConcurrentHashMap<>();
             this.sweptJobs.put(shardId, jobVersionMap);
         }
-        jobVersionMap.compute(docId, (id, currentVersion) -> {
-            if (version.compareTo(currentVersion) <= 0) {
-                log.debug("Skipping job {}, new version {} <= current version {}", docId, version, currentVersion);
-                return currentVersion;
+        jobVersionMap.compute(docId, (id, currentJobDocVersion) -> {
+            if (jobDocVersion.compareTo(currentJobDocVersion) <= 0) {
+                log.debug("Skipping job {}, new version {} <= current version {}", docId, jobDocVersion, currentJobDocVersion);
+                return currentJobDocVersion;
             }
 
             if (this.scheduler.getScheduledJobIds(shardId.getIndexName()).contains(docId)) {
@@ -236,20 +236,20 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                     ScheduledJobProvider provider = this.indexToProviders.get(shardId.getIndexName());
                     XContentParser parser = XContentHelper.createParser(this.xContentRegistry, LoggingDeprecationHandler.INSTANCE,
                             jobSource, XContentType.JSON);
-                    ScheduledJobParameter jobParameter = provider.getJobParser().parse(parser, docId, version);
+                    ScheduledJobParameter jobParameter = provider.getJobParser().parse(parser, docId, jobDocVersion);
                     if (jobParameter == null) {
                         // allow parser to return null, which means this is not a scheduled job document.
                         return null;
                     }
                     ScheduledJobRunner jobRunner = this.indexToProviders.get(shardId.getIndexName()).getJobRunner();
                     if (jobParameter.isEnabled()) {
-                        this.scheduler.schedule(shardId.getIndexName(), docId, jobParameter, jobRunner, version);
+                        this.scheduler.schedule(shardId.getIndexName(), docId, jobParameter, jobRunner, jobDocVersion);
                     }
-                    return version;
+                    return jobDocVersion;
                 } catch (Exception e) {
                     log.warn("Unable to parse job, error message: {} , message source: {}", e.getMessage(),
                             Strings.cleanTruncate(jobSource.utf8ToString(), 1000));
-                    return currentVersion;
+                    return currentJobDocVersion;
                 }
             } else {
                 return null;
