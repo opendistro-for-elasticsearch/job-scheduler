@@ -91,7 +91,7 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
 
     @Override
     public ScheduledJobParser getJobParser() {
-        return (parser, id, version) -> {
+        return (parser, id, jobDocVersion) -> {
             SampleJobParameter jobParameter = new SampleJobParameter();
             XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser::getTokenLocation);
 

@@ -20,6 +20,7 @@ import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
 import com.cronutils.utils.VisibleForTesting;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -30,6 +31,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -137,5 +139,24 @@ public class CronSchedule implements Schedule {
                 .endObject()
                 .endObject();
         return builder;
+    }
+
+    @Override
+    public String toString() {
+        return Strings.toString(this, false, true);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CronSchedule cronSchedule = (CronSchedule) o;
+        return timezone.equals(cronSchedule.timezone) &&
+                expression.equals(cronSchedule.expression);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(timezone, expression);
     }
 }
