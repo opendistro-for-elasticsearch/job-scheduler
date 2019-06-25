@@ -62,6 +62,7 @@ import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -298,14 +299,20 @@ public class JobSweeperTests extends ESAllocationTestCase {
         docs.add(new ParseContext.Document());
         BytesReference source = this.getTestJsonSource();
 
-        Term uid = new Term("id_field", new BytesRef(docId.getBytes(), 0, docId.getBytes().length));
+        Term uid = new Term(
+            "id_field",
+            new BytesRef(docId.getBytes(Charset.defaultCharset()), 0, docId.getBytes(Charset.defaultCharset()).length)
+        );
         ParsedDocument parsedDocument = new ParsedDocument(null, null, docId, "_doc", null, docs, source, null, null);
 
         return new Engine.Index(uid, primaryTerm, parsedDocument);
     }
 
     private Engine.Delete getDeleteOperation(String docId) {
-        Term uid = new Term("id_field", new BytesRef(docId.getBytes(), 0, docId.getBytes().length));
+        Term uid = new Term(
+            "id_field",
+            new BytesRef(docId.getBytes(Charset.defaultCharset()), 0, docId.getBytes(Charset.defaultCharset()).length)
+        );
         return new Engine.Delete("_doc", docId, uid, 1L);
     }
 
