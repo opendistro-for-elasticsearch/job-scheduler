@@ -30,6 +30,7 @@ buildscript {
 plugins {
     id 'nebula.ospackage' version "5.3.0"
     id 'java-library'
+    id 'signing'
 }
 
 ext {
@@ -135,4 +136,73 @@ afterEvaluate {
         archiveName "${packageName}-${version}.deb"
         dependsOn 'assemble'
     }
+}
+
+task javadocJar(type: Jar) {
+    classifier "javadoc"
+    from javadoc.destinationDir
+}
+
+publishing {
+    publications {
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
+            artifact sourcesJar
+            artifact javadocJar
+
+            pom {
+              name = "ElasticSearch Job Schduler"
+              packaging = "jar"
+              url = "https://github.com/opendistro-for-elasticsearch/job-scheduler"
+              description = "Open Distro for Elasticsearch Job Scheduler"
+              scm {
+                connection = "scm:git@github.com:opendistro-for-elasticsearch/job-scheduler.git"
+                developerConnection = "scm:git@github.com:opendistro-for-elasticsearch/job-scheduler.git"
+                url = "git@github.com:opendistro-for-elasticsearch/job-scheduler.git"
+              }
+              licenses {
+                license {
+                  name = "The Apache License, Version 2.0"
+                  url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                }
+              }
+              developers {
+                developer {
+                  id = "amazonwebservices"
+                  organization = "Amazon Web Services"
+                  organizationUrl = "https://aws.amazon.com"
+                }
+              }
+            }
+        }
+    }
+
+    repositories {
+       maven {
+            name = "sonatype-staging"
+            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            credentials {
+                username project.hasProperty('ossrhUsername') ? project.property('ossrhUsername') : ''
+                password project.hasProperty('ossrhPassword') ? project.property('ossrhPassword') : ''
+            }
+        }
+    }
+
+    // TODO - enabled debug logging for the time being, remove this eventually
+    gradle.startParameter.setShowStacktrace(ShowStacktrace.ALWAYS)
+    gradle.startParameter.setLogLevel(LogLevel.DEBUG)
+}
+
+maven {
+            name = "sonatype-staging"
+            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            credentials {
+                username project.hasProperty('ossrhUsername') ? project.property('ossrhUsername') : ''
+                password project.hasProperty('ossrhPassword') ? project.property('ossrhPassword') : ''
+            }
+        }
+
+signing {
+    required { gradle.taskGraph.hasTask("publishShadowPublicationToSonatype-stagingRepository") }
+    sign publishing.publications.shadow
 }
