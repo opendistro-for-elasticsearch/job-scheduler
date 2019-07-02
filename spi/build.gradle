@@ -17,6 +17,9 @@ plugins {
     id 'com.github.johnrengelman.shadow'
     id 'java-library'
     id 'jacoco'
+    id 'maven'
+    id 'maven-publish'
+    id 'signing'
 }
 
 jacoco {
@@ -48,4 +51,69 @@ shadowJar {
 test {
     // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
     systemProperty 'tests.security.manager', 'false'
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar) {
+    classifier "javadoc"
+    from javadoc.destinationDir
+}
+
+publishing {
+    publications {
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
+            artifact sourcesJar
+            artifact javadocJar
+
+            pom {
+              name = "ElasticSearch SQL JDBC"
+              packaging = "jar"
+              url = "https://github.com/opendistro-for-elasticsearch/sql-jdbc"
+              description = "Driver for JDBC connectivity to a cluster running with Open Distro for Elasticsearch SQL support"
+              scm {
+                connection = "scm:git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
+                developerConnection = "scm:git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
+                url = "git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
+              }
+              licenses {
+                license {
+                  name = "The Apache License, Version 2.0"
+                  url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                }
+              }
+              developers {
+                developer {
+                  id = "amazonwebservices"
+                  organization = "Amazon Web Services"
+                  organizationUrl = "https://aws.amazon.com"
+                }
+              }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "sonatype-staging"
+            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            credentials {
+                username project.hasProperty('ossrhUsername') ? project.property('ossrhUsername') : ''
+                password project.hasProperty('ossrhPassword') ? project.property('ossrhPassword') : ''
+            }
+        }
+    }
+
+    // TODO - enabled debug logging for the time being, remove this eventually
+    gradle.startParameter.setShowStacktrace(ShowStacktrace.ALWAYS)
+    gradle.startParameter.setLogLevel(LogLevel.DEBUG)
+}
+
+signing {
+    required { gradle.taskGraph.hasTask("publishShadowPublicationToSonatype-stagingRepository") }
+    sign publishing.publications.shadow
 }
