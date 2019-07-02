@@ -46,6 +46,7 @@ dependencies {
 shadowJar {
     relocate 'com.cronutils', 'com.amazon.opendistroforelasticsearch.jobscheduler.repackage.com.cronutils'
     relocate 'org.slf4j', 'com.amazon.opendistroforelasticsearch.jobscheduler.repackage.org.slf4j' // dependency of cron-utils
+    classifier = null
 }
 
 test {
