@@ -71,14 +71,14 @@ publishing {
             artifact javadocJar
 
             pom {
-              name = "ElasticSearch SQL JDBC"
+              name = "ElasticSearch Job Scheduler"
               packaging = "jar"
-              url = "https://github.com/opendistro-for-elasticsearch/sql-jdbc"
-              description = "Driver for JDBC connectivity to a cluster running with Open Distro for Elasticsearch SQL support"
+              url = "https://github.com/opendistro-for-elasticsearch/job-scheduler"
+              description = "Open Distro for Elasticsearch Job Scheduler"
               scm {
-                connection = "scm:git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
-                developerConnection = "scm:git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
-                url = "git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
+                connection = "scm:git@github.com:opendistro-for-elasticsearch/job-scheduler.git"
+                developerConnection = "scm:git@github.com:opendistro-for-elasticsearch/job-scheduler.git"
+                url = "git@github.com:opendistro-for-elasticsearch/job-scheduler.git"
               }
               licenses {
                 license {
