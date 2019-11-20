@@ -64,8 +64,6 @@ import org.mockito.stubbing.OngoingStubbing;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -105,8 +103,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         this.settings = Settings.builder().build();
 
-        this.discoveryNode = new DiscoveryNode("node", ESTestCase.buildNewFakeTransportAddress(), Collections.emptyMap(),
-                EnumSet.allOf(DiscoveryNode.Role.class), Version.CURRENT);
+        this.discoveryNode = new DiscoveryNode("node", ESTestCase.buildNewFakeTransportAddress(), Version.CURRENT);
 
         Set<Setting<?>> settingSet = new HashSet<>();
         settingSet.addAll(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
