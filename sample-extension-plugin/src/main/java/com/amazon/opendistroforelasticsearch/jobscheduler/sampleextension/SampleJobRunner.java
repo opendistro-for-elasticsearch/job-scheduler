@@ -16,12 +16,12 @@
 package com.amazon.opendistroforelasticsearch.jobscheduler.sampleextension;
 
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobExecutionContext;
-import com.amazon.opendistroforelasticsearch.jobscheduler.spi.LockModel;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.plugins.Plugin;
@@ -94,27 +94,39 @@ public class SampleJobRunner implements ScheduledJobRunner {
         final LockService lockService = context.getLockService();
 
         Runnable runnable = () -> {
-            LockModel lock = null;
             if (jobParameter.getLockDurationSeconds() != null) {
-                lock = lockService.acquireLock(jobParameter, context);
+                lockService.acquireLock(jobParameter, context, ActionListener.wrap(
+                        lock -> {
+                            if (lock == null) {
+                                return;
+                            }
 
-                if (lock == null) {
-                    return;
-                }
+                            SampleJobParameter parameter = (SampleJobParameter) jobParameter;
+                            StringBuilder msg = new StringBuilder();
+                            msg.append("Watching index ").append(parameter.getIndexToWatch()).append("\n");
+
+                            List<ShardRouting> shardRoutingList = this.clusterService.state()
+                                    .routingTable().allShards(parameter.getIndexToWatch());
+                            for(ShardRouting shardRouting : shardRoutingList) {
+                                msg.append(shardRouting.shardId().getId()).append("\t").append(shardRouting.currentNodeId()).append("\t")
+                                        .append(shardRouting.active() ? "active" : "inactive").append("\n");
+                            }
+                            log.info(msg.toString());
+
+                            lockService.release(lock, ActionListener.wrap(
+                                    released -> {
+                                        log.info("Released lock for job {}", jobParameter.getName());
+                                    },
+                                    exception -> {
+                                        throw new IllegalStateException("Failed to release lock.");
+                                    }
+                            ));
+                        },
+                        exception -> {
+                            throw new IllegalStateException("Failed to acquire lock.");
+                        }
+                ));
             }
-
-            SampleJobParameter parameter = (SampleJobParameter) jobParameter;
-            StringBuilder msg = new StringBuilder();
-            msg.append("Watching index ").append(parameter.getIndexToWatch()).append("\n");
-
-            List<ShardRouting> shardRoutingList = this.clusterService.state().routingTable().allShards(parameter.getIndexToWatch());
-            for(ShardRouting shardRouting : shardRoutingList) {
-                msg.append(shardRouting.shardId().getId()).append("\t").append(shardRouting.currentNodeId()).append("\t")
-                    .append(shardRouting.active() ? "active" : "inactive").append("\n");
-            }
-            log.info(msg.toString());
-
-            lockService.release(lock);
         };
 
         threadPool.generic().submit(runnable);
