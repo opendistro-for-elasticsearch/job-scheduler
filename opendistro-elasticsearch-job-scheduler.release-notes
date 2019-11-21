@@ -1,4 +1,9 @@
-## version 1.2.0 (Current)
+## version 1.3.0.0 (Current)
+
+### Breaking Changes
+* Converts LockService to asynchronous pattern to not block threadpool, this requires an update to usage as API changed.
+
+## 2019-06-25, version 1.2.0.0
 
 ### Notable Changes
 * Feature [PR #22](https://github.com/opendistro-for-elasticsearch/job-scheduler/issues/22) Add Support for Elasticsearch 7.2
@@ -6,7 +11,7 @@
 ### Bug fixes
 * [update ScheduledJobParser to use the JobDocVersion #15](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/15)
 
-## version 1.1.0
+## 2019-06-25, version 1.1.0.0
 
 ### Notable Changes
 * Feature [PR #16](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/16) Add Support for Elasticsearch 7.1
@@ -18,13 +23,18 @@
 * [Change log level when sweeper already have latest job version #11](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/11)
 * [Refactor JobSweeper to do sweep on certain clusterChangedEvent #10](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/10)
 
-## 2019-06-10, version 1.0.0
+## 2019-06-10, version 1.0.0.0
 
 ### Notable Changes
 * Feature [#4](https://github.com/opendistro-for-elasticsearch/job-scheduler/issues/4) Add Support for Elasticsearch 7.0
 * Feature [#7](https://github.com/opendistro-for-elasticsearch/job-scheduler/issues/7) Singleton job execution using locking
 
-## 2019-04-10
+## 2019-06-27, version 0.10.0.0
+
+### Notable Changes
+* Feature [PR #18](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/18) Add Support for Elasticsearch 6.8.1
+
+## 2019-04-10, version 0.9.0.0
 
 ### Notable Changes
 
