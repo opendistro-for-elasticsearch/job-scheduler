@@ -27,6 +27,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTestin
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -209,7 +210,10 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
         if (this.scheduler.getScheduledJobIds(shardId.getIndexName()).contains(delete.id())) {
             log.info("Descheduling job {} on index {}", delete.id(), shardId.getIndexName());
             this.scheduler.deschedule(shardId.getIndexName(), delete.id());
-            lockService.deleteLock(LockModel.generateLockId(shardId.getIndexName(), delete.id()));
+            lockService.deleteLock(LockModel.generateLockId(shardId.getIndexName(), delete.id()), ActionListener.wrap(
+                    deleted -> log.debug("Deleted lock: {}", deleted),
+                    exception -> log.debug("Failed to delete lock", exception)
+            ));
         }
     }
 
