@@ -1,4 +1,9 @@
-## 2019-06-10, version 1.0.0 (Current)
+## Version 1.0.0.1 (Current)
+
+### Breaking Changes
+* Converts LockService to asynchronous pattern to not block threadpool, this requires an update to usage as API changed.
+
+## 2019-06-10, Version 1.0.0.0
 
 ### Notable Changes
 * Feature [#4](https://github.com/opendistro-for-elasticsearch/job-scheduler/issues/4) Add Support for Elasticsearch 7.0
