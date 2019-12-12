@@ -122,7 +122,7 @@ public class LockServiceIT extends ESIntegTestCase {
                 },
                 exception -> fail(exception.getMessage())
         ));
-        latch.await(10000L, TimeUnit.MILLISECONDS);
+        latch.await(5L, TimeUnit.SECONDS);
     }
 
     public void testSecondAcquireLockFail() throws Exception {
@@ -156,7 +156,7 @@ public class LockServiceIT extends ESIntegTestCase {
                 },
                 exception -> fail(exception.getMessage())
         ));
-        latch.await(10000L, TimeUnit.MILLISECONDS);
+        latch.await(10L, TimeUnit.SECONDS);
     }
 
     public void testLockReleasedAndAcquired() throws Exception {
@@ -196,7 +196,7 @@ public class LockServiceIT extends ESIntegTestCase {
                 },
                 exception -> fail(exception.getMessage())
         ));
-        latch.await(10000L, TimeUnit.MILLISECONDS);
+        latch.await(5L, TimeUnit.SECONDS);
     }
 
     public void testLockExpired() throws Exception {
@@ -241,7 +241,7 @@ public class LockServiceIT extends ESIntegTestCase {
                 },
                 exception -> fail(exception.getMessage())
         ));
-        latch.await(10000L, TimeUnit.MILLISECONDS);
+        latch.await(5L, TimeUnit.SECONDS);
     }
 
     public void testDeleteLockWithOutIndexCreation() throws Exception {
@@ -254,7 +254,7 @@ public class LockServiceIT extends ESIntegTestCase {
                 },
                 exception -> fail(exception.getMessage())
         ));
-        latch.await(10000L, TimeUnit.MILLISECONDS);
+        latch.await(5L, TimeUnit.SECONDS);
     }
 
     public void testDeleteNonExistingLock() throws Exception {
@@ -277,7 +277,7 @@ public class LockServiceIT extends ESIntegTestCase {
                 },
                 exception -> fail(exception.getMessage())
         ));
-        latch.await(10000L, TimeUnit.MILLISECONDS);
+        latch.await(5L, TimeUnit.SECONDS);
     }
 
     private volatile static AtomicInteger multiThreadCreateLockCounter = new AtomicInteger(0);
@@ -306,7 +306,7 @@ public class LockServiceIT extends ESIntegTestCase {
                                     },
                                     exception -> fail(exception.getMessage())
                             ));
-                            callableLatch.await(10000L, TimeUnit.MILLISECONDS);
+                            callableLatch.await(5L, TimeUnit.SECONDS);
                             return true;
                         };
 
@@ -325,7 +325,7 @@ public class LockServiceIT extends ESIntegTestCase {
                                     }
                                 });
                         executor.shutdown();
-                        executor.awaitTermination(10000L, TimeUnit.MILLISECONDS);
+                        executor.awaitTermination(10L, TimeUnit.SECONDS);
 
                         assertEquals("There should be only one that grabs the lock.", 1, multiThreadCreateLockCounter.get());
 
@@ -350,7 +350,7 @@ public class LockServiceIT extends ESIntegTestCase {
                 },
                 exception -> fail(exception.getMessage())
         ));
-        assertTrue("Test timed out - possibly leaked into other tests", latch.await(30000L, TimeUnit.MILLISECONDS));
+        assertTrue("Test timed out - possibly leaked into other tests", latch.await(30L, TimeUnit.SECONDS));
     }
 
     private volatile static AtomicInteger multiThreadAcquireLockCounter = new AtomicInteger(0);
@@ -386,7 +386,7 @@ public class LockServiceIT extends ESIntegTestCase {
                                                 },
                                                 exception -> fail(exception.getMessage())
                                         ));
-                                        callableLatch.await(10000L, TimeUnit.MILLISECONDS);
+                                        callableLatch.await(5L, TimeUnit.SECONDS);
                                         return true;
                                     };
 
@@ -398,7 +398,7 @@ public class LockServiceIT extends ESIntegTestCase {
 
                                     executor.invokeAll(callables);
                                     executor.shutdown();
-                                    executor.awaitTermination(10000L, TimeUnit.MILLISECONDS);
+                                    executor.awaitTermination(10L, TimeUnit.SECONDS);
 
                                     assertEquals("There should be only one that grabs the lock.", 1, multiThreadAcquireLockCounter.get());
 
@@ -426,6 +426,6 @@ public class LockServiceIT extends ESIntegTestCase {
                 },
                 exception -> fail(exception.getMessage())
         ));
-        assertTrue("Test timed out - possibly leaked into other tests", latch.await(30000L, TimeUnit.MILLISECONDS));
+        assertTrue("Test timed out - possibly leaked into other tests", latch.await(30L, TimeUnit.SECONDS));
     }
 }
