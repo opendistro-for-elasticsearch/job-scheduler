@@ -38,3 +38,9 @@ jobs:
         with:
           name: job-scheduler-sample-plugin
           path: ./sample-extension-plugin/build
+      - name: Upload Artifacts SPI Plugin
+        uses: actions/upload-artifact@v1
+        if: always()
+        with:
+          name: job-scheduler-spi-plugin
+          path: ./spi/build
