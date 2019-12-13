@@ -26,14 +26,15 @@ jobs:
           java-version: ${{ matrix.java }}
       - name: Build with Gradle
         run: ./gradlew build
-      - name: Create Artifact Path
-        run: |
-          mkdir -p job-scheduler-artifacts
-          cp ./build/distributions/*.zip job-scheduler-artifacts
-          cp ./sample-extension-plugin/build/distributions/*.zip job-scheduler-artifacts
-      # This step uses the upload-artifact Github action: https://github.com/actions/upload-artifact
-      - name: Upload Artifacts
+      - name: Upload Artifacts Plugin
         uses: actions/upload-artifact@v1
+        if: always()
         with:
           name: job-scheduler-plugin
-          path: job-scheduler-artifacts
+          path: ./build
+      - name: Upload Artifacts Sample Plugin
+        uses: actions/upload-artifact@v1
+        if: always()
+        with:
+          name: job-scheduler-sample-plugin
+          path: ./sample-extension-plugin/build
