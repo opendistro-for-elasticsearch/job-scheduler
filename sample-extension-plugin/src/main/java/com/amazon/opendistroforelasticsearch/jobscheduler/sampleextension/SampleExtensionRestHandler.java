@@ -22,7 +22,6 @@ import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -51,8 +50,7 @@ import java.time.temporal.ChronoUnit;
 public class SampleExtensionRestHandler extends BaseRestHandler {
     public static final String WATCH_INDEX_URI = "/_opendistro/scheduler_sample/watch";
 
-    public SampleExtensionRestHandler(Settings settings, RestController restController) {
-        super(settings);
+    public SampleExtensionRestHandler(RestController restController) {
         restController.registerHandler(RestRequest.Method.POST, WATCH_INDEX_URI, this);
         restController.registerHandler(RestRequest.Method.DELETE, WATCH_INDEX_URI, this);
     }
