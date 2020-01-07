@@ -211,7 +211,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
     public void testPostIndex_indexFailed() {
         ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
         Engine.Index index = this.getIndexOperation();
-        Engine.IndexResult indexResult = new Engine.IndexResult(new IOException("exception"), 1L, 1L);
+        Engine.IndexResult indexResult = new Engine.IndexResult(new IOException("exception"), 1L);
 
         this.sweeper.postIndex(shardId, index, indexResult);
 
