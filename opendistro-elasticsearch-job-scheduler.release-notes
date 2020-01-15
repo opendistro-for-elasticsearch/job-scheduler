@@ -1,7 +1,14 @@
-## Version 1.0.0.1 (Current)
+## Version 1.0.0.2 (Current)
 
 ### Breaking Changes
 * Converts LockService to asynchronous pattern to not block threadpool, this requires an update to usage as API changed.
+
+## 2019-06-20, Version 1.0.0.1
+
+### Notable Changes
+* Adds equals, hashCode, toString overrides to IntervalSchedule and CronSchedule (#13)
+* Use ROOT Locale for Strings to prevent inconsistencies in format (#14)
+* update ScheduledJobParser to use the JobDocVersion (#15)
 
 ## 2019-06-10, Version 1.0.0.0
 
