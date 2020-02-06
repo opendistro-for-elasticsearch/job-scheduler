@@ -35,6 +35,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobExecutionContex
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.LockModel;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.Schedule;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 
@@ -44,8 +45,11 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes =1)
@@ -86,56 +90,118 @@ public class LockServiceIT extends ESIntegTestCase {
         }
     };
 
-
-    public void testSanity() {
+    public void testSanity() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         LockService lockService = new LockService(client(), clusterService());
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME, JOB_ID);
-
         Instant testTime = Instant.now();
         lockService.setTime(testTime);
-        LockModel lock = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-        assertNotNull("Expected to successfully grab lock.", lock);
-        assertEquals("job_id does not match.", JOB_ID, lock.getJobId());
-        assertEquals("job_index_name does not match.", JOB_INDEX_NAME, lock.getJobIndexName());
-        assertEquals("lock_id does not match.", LockModel.generateLockId(JOB_INDEX_NAME, JOB_ID), lock.getLockId());
-        assertEquals("lock_duration_seconds does not match.", LOCK_DURATION_SECONDS, lock.getLockDurationSeconds());
-        assertEquals("lock_time does not match.", testTime.getEpochSecond(), lock.getLockTime().getEpochSecond());
-        assertFalse("Lock should not be released.", lock.isReleased());
-        assertFalse("Lock should not expire.", lock.isExpired());
-        assertTrue("Failed to release lock.", lockService.release(lock));
-        assertTrue("Failed to delete lock.",lockService.deleteLock(lock.getLockId()));
+        lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                lock -> {
+                    assertNotNull("Expected to successfully grab lock.", lock);
+                    assertEquals("job_id does not match.", JOB_ID, lock.getJobId());
+                    assertEquals("job_index_name does not match.", JOB_INDEX_NAME, lock.getJobIndexName());
+                    assertEquals("lock_id does not match.", LockModel.generateLockId(JOB_INDEX_NAME, JOB_ID), lock.getLockId());
+                    assertEquals("lock_duration_seconds does not match.", LOCK_DURATION_SECONDS, lock.getLockDurationSeconds());
+                    assertEquals("lock_time does not match.", testTime.getEpochSecond(), lock.getLockTime().getEpochSecond());
+                    assertFalse("Lock should not be released.", lock.isReleased());
+                    assertFalse("Lock should not expire.", lock.isExpired());
+                    lockService.release(lock, ActionListener.wrap(
+                            released -> {
+                                assertTrue("Failed to release lock.", released);
+                                lockService.deleteLock(lock.getLockId(), ActionListener.wrap(
+                                        deleted -> {
+                                            assertTrue("Failed to delete lock.", deleted);
+                                            latch.countDown();
+                                        },
+                                        exception -> fail(exception.getMessage())
+                                ));
+                            },
+                            exception -> fail(exception.getMessage())
+                    ));
+                },
+                exception -> fail(exception.getMessage())
+        ));
+        latch.await(10000L, TimeUnit.MILLISECONDS);
     }
 
-    public void testSecondAcquireLockFail() {
+    public void testSecondAcquireLockFail() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         LockService lockService = new LockService(client(), clusterService());
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME, JOB_ID);
 
-        LockModel lock = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-        LockModel lock2 = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-        assertNotNull("Expected to successfully grab lock", lock);
-        assertNull("Expected to failed to get lock.", lock2);
-        assertTrue("Failed to release lock.", lockService.release(lock));
-        lockService.deleteLock(lock.getLockId());
-        assertTrue("Failed to delete lock.",lockService.deleteLock(lock.getLockId()));
+        lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                lock -> {
+                    assertNotNull("Expected to successfully grab lock", lock);
+                    lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                            lock2 -> {
+                                assertNull("Expected to failed to get lock.", lock2);
+                                lockService.release(lock, ActionListener.wrap(
+                                        released -> {
+                                            assertTrue("Failed to release lock.", released);
+                                            lockService.deleteLock(lock.getLockId(), ActionListener.wrap(
+                                                    deleted -> {
+                                                        assertTrue("Failed to delete lock.", deleted);
+                                                        latch.countDown();
+                                                    },
+                                                    exception -> fail(exception.getMessage())
+                                            ));
+                                        },
+                                        exception -> fail(exception.getMessage())
+                                ));
+                            },
+                            exception -> fail(exception.getMessage())
+                    ));
+                },
+                exception -> fail(exception.getMessage())
+        ));
+        latch.await(10000L, TimeUnit.MILLISECONDS);
     }
 
-    public void testLockReleasedAndAcquired() {
+    public void testLockReleasedAndAcquired() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         LockService lockService = new LockService(client(), clusterService());
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME, JOB_ID);
 
-        LockModel lock = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-        assertNotNull("Expected to successfully grab lock", lock);
-        assertTrue("Failed to release lock.", lockService.release(lock));
-        LockModel lock2 = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-        assertNotNull("Expected to successfully grab lock", lock2);
-        assertTrue("Failed to release lock.", lockService.release(lock2));
-        assertTrue("Failed to delete lock.",lockService.deleteLock(lock.getLockId()));
+        lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                lock -> {
+                    assertNotNull("Expected to successfully grab lock", lock);
+                    lockService.release(lock, ActionListener.wrap(
+                            released -> {
+                                assertTrue("Failed to release lock.", released);
+                                lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                                        lock2 -> {
+                                            assertNotNull("Expected to successfully grab lock2", lock2);
+                                            lockService.release(lock2, ActionListener.wrap(
+                                                    released2 -> {
+                                                        assertTrue("Failed to release lock2.", released2);
+                                                        lockService.deleteLock(lock2.getLockId(), ActionListener.wrap(
+                                                                deleted -> {
+                                                                    assertTrue("Failed to delete lock2.", deleted);
+                                                                    latch.countDown();
+                                                                },
+                                                                exception -> fail(exception.getMessage())
+                                                        ));
+                                                    },
+                                                    exception -> fail(exception.getMessage())
+                                            ));
+                                        },
+                                        exception -> fail(exception.getMessage())
+                                ));
+                            },
+                            exception -> fail(exception.getMessage())
+                    ));
+                },
+                exception -> fail(exception.getMessage())
+        ));
+        latch.await(10000L, TimeUnit.MILLISECONDS);
     }
 
-    public void testLockExpired() {
+    public void testLockExpired() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         LockService lockService = new LockService(client(), clusterService());
         // Set lock time in the past.
         lockService.setTime(Instant.now().minus(Duration.ofSeconds(LOCK_DURATION_SECONDS + LOCK_DURATION_SECONDS)));
@@ -143,122 +209,224 @@ public class LockServiceIT extends ESIntegTestCase {
             lockService, JOB_INDEX_NAME, JOB_ID);
 
 
-        LockModel lock = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-        assertNotNull("Expected to successfully grab lock", lock);
-        // Set lock back to current time to make the lock expire.
-        lockService.setTime(null);
-        LockModel lock2 = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-        assertNotNull("Expected to successfully grab lock", lock2);
-        assertFalse("Expected to fail releasing lock.", lockService.release(lock));
-        assertTrue("Expecting to successfully release lock.", lockService.release(lock2));
-        assertTrue("Failed to delete lock.",lockService.deleteLock(lock.getLockId()));
+        lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                lock -> {
+                    assertNotNull("Expected to successfully grab lock", lock);
+                    // Set lock back to current time to make the lock expire.
+                    lockService.setTime(null);
+                    lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                            lock2 -> {
+                                assertNotNull("Expected to successfully grab lock", lock2);
+                                lockService.release(lock, ActionListener.wrap(
+                                        released -> {
+                                            assertFalse("Expected to fail releasing lock.", released);
+                                            lockService.release(lock2, ActionListener.wrap(
+                                                    released2 -> {
+                                                        assertTrue("Expecting to successfully release lock.", released2);
+                                                        lockService.deleteLock(lock.getLockId(), ActionListener.wrap(
+                                                                deleted -> {
+                                                                    assertTrue("Failed to delete lock.", deleted);
+                                                                    latch.countDown();
+                                                                },
+                                                                exception -> fail(exception.getMessage())
+                                                        ));
+                                                    },
+                                                    exception -> fail(exception.getMessage())
+                                            ));
+                                        },
+                                        exception -> fail(exception.getMessage())
+                                ));
+                            },
+                            exception -> fail(exception.getMessage())
+                    ));
+                },
+                exception -> fail(exception.getMessage())
+        ));
+        latch.await(10000L, TimeUnit.MILLISECONDS);
     }
 
-    public void testDeleteLockWithOutIndexCreation() {
+    public void testDeleteLockWithOutIndexCreation() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         LockService lockService = new LockService(client(), clusterService());
-        assertTrue("Failed to delete lock.",lockService.deleteLock("NonExistingLockId"));
+        lockService.deleteLock("NonExistingLockId", ActionListener.wrap(
+                deleted -> {
+                    assertTrue("Failed to delete lock.", deleted);
+                    latch.countDown();
+                },
+                exception -> fail(exception.getMessage())
+        ));
+        latch.await(10000L, TimeUnit.MILLISECONDS);
     }
 
-    public void testDeleteNonExistingLock() {
+    public void testDeleteNonExistingLock() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         LockService lockService = new LockService(client(), clusterService());
-        lockService.createLockIndex();
-        assertTrue("Failed to delete lock.",lockService.deleteLock("NonExistingLockId"));
+        lockService.createLockIndex(ActionListener.wrap(
+                created -> {
+                    if (created) {
+                        lockService.deleteLock("NonExistingLockId", ActionListener.wrap(
+                                deleted -> {
+                                    assertTrue("Failed to delete lock.", deleted);
+                                    latch.countDown();
+                                },
+                                exception -> fail(exception.getMessage())
+                        ));
+
+                    } else {
+                        fail("Failed to create lock index.");
+                    }
+                },
+                exception -> fail(exception.getMessage())
+        ));
+        latch.await(10000L, TimeUnit.MILLISECONDS);
     }
+
+    private volatile static AtomicInteger multiThreadCreateLockCounter = new AtomicInteger(0);
 
     public void testMultiThreadCreateLock() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         final LockService lockService = new LockService(client(), clusterService());
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME, JOB_ID);
 
-        lockService.createLockIndex();
-        ExecutorService executor = Executors.newFixedThreadPool(3);
-        final AtomicReference<LockModel> lockModelAtomicReference = new AtomicReference<>(null);
-        Callable<Integer> callable = () -> {
-            LockModel lock = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-            if (lock != null) {
-                lockModelAtomicReference.set(lock);
-                return 1;
-            }
-            return 0;
-        };
 
-        List<Callable<Integer>> callables = Arrays.asList(
-            callable,
-            callable,
-            callable
-        );
+        lockService.createLockIndex(ActionListener.wrap(
+                created -> {
+                    if (created) {
+                        ExecutorService executor = Executors.newFixedThreadPool(3);
+                        final AtomicReference<LockModel> lockModelAtomicReference = new AtomicReference<>(null);
+                        Callable<Boolean> callable = () -> {
+                            CountDownLatch callableLatch = new CountDownLatch(1);
+                            lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                                    lock -> {
+                                        if (lock != null) {
+                                            lockModelAtomicReference.set(lock);
+                                            multiThreadCreateLockCounter.getAndAdd(1);
+                                        }
+                                        callableLatch.countDown();
+                                    },
+                                    exception -> fail(exception.getMessage())
+                            ));
+                            callableLatch.await(10000L, TimeUnit.MILLISECONDS);
+                            return true;
+                        };
 
-        final int counter = executor.invokeAll(callables)
-            .stream()
-            .map(future -> {
-                try {
-                    return future.get();
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-            })
-            .mapToInt(Integer::intValue)
-            .sum();
-        executor.shutdown();
+                        List<Callable<Boolean>> callables = Arrays.asList(
+                                callable,
+                                callable,
+                                callable
+                        );
 
-        assertEquals("There should be only one that grabs the lock.", 1, counter);
+                        executor.invokeAll(callables)
+                                .forEach(future -> {
+                                    try {
+                                        future.get();
+                                    } catch (Exception e) {
+                                        fail(e.getMessage());
+                                    }
+                                });
+                        executor.shutdown();
+                        executor.awaitTermination(10000L, TimeUnit.MILLISECONDS);
 
-        final LockModel lock = lockModelAtomicReference.get();
-        assertNotNull("Expected to successfully grab lock", lock);
-        assertTrue("Failed to release lock.", lockService.release(lock));
-        assertTrue("Failed to delete lock.",lockService.deleteLock(lock.getLockId()));
+                        assertEquals("There should be only one that grabs the lock.", 1, multiThreadCreateLockCounter.get());
+
+                        final LockModel lock = lockModelAtomicReference.get();
+                        assertNotNull("Expected to successfully grab lock", lock);
+                        lockService.release(lock, ActionListener.wrap(
+                                released -> {
+                                    assertTrue("Failed to release lock.", released);
+                                    lockService.deleteLock(lock.getLockId(), ActionListener.wrap(
+                                            deleted -> {
+                                                assertTrue("Failed to delete lock.", deleted);
+                                                latch.countDown();
+                                            },
+                                            exception -> fail(exception.getMessage())
+                                    ));
+                                },
+                                exception -> fail(exception.getMessage())
+                        ));
+                    } else {
+                        fail("Failed to create lock index.");
+                    }
+                },
+                exception -> fail(exception.getMessage())
+        ));
+        assertTrue("Test timed out - possibly leaked into other tests", latch.await(30000L, TimeUnit.MILLISECONDS));
     }
 
+    private volatile static AtomicInteger multiThreadAcquireLockCounter = new AtomicInteger(0);
+
     public void testMultiThreadAcquireLock() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         final LockService lockService = new LockService(client(), clusterService());
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME, JOB_ID);
 
-        lockService.createLockIndex();
+        lockService.createLockIndex(ActionListener.wrap(
+                created -> {
+                    if (created) {
+                        // Set lock time in the past.
+                        lockService.setTime(Instant.now().minus(Duration.ofSeconds(LOCK_DURATION_SECONDS + LOCK_DURATION_SECONDS)));
+                        lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                                createdLock -> {
+                                    assertNotNull(createdLock);
+                                    // Set lock back to current time to make the lock expire.
+                                    lockService.setTime(null);
 
-        // Set lock time in the past.
-        lockService.setTime(Instant.now().minus(Duration.ofSeconds(LOCK_DURATION_SECONDS + LOCK_DURATION_SECONDS)));
-        LockModel createdLock = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-        assertNotNull(createdLock);
-        // Set lock back to current time to make the lock expire.
-        lockService.setTime(null);
+                                    ExecutorService executor = Executors.newFixedThreadPool(3);
+                                    final AtomicReference<LockModel> lockModelAtomicReference = new AtomicReference<>(null);
+                                    Callable<Boolean> callable = () -> {
+                                        CountDownLatch callableLatch = new CountDownLatch(1);
+                                        lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                                                lock -> {
+                                                    if (lock != null) {
+                                                        lockModelAtomicReference.set(lock);
+                                                        Integer test = multiThreadAcquireLockCounter.getAndAdd(1);
+                                                    }
+                                                    callableLatch.countDown();
+                                                },
+                                                exception -> fail(exception.getMessage())
+                                        ));
+                                        callableLatch.await(10000L, TimeUnit.MILLISECONDS);
+                                        return true;
+                                    };
 
-        ExecutorService executor = Executors.newFixedThreadPool(3);
-        final AtomicReference<LockModel> lockModelAtomicReference = new AtomicReference<>(null);
-        Callable<Integer> callable = () -> {
-            LockModel lock = lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context);
-            if (lock != null) {
-                lockModelAtomicReference.set(lock);
-                return 1;
-            }
-            return 0;
-        };
+                                    List<Callable<Boolean>> callables = Arrays.asList(
+                                            callable,
+                                            callable,
+                                            callable
+                                    );
 
-        List<Callable<Integer>> callables = Arrays.asList(
-            callable,
-            callable,
-            callable
-        );
+                                    executor.invokeAll(callables);
+                                    executor.shutdown();
+                                    executor.awaitTermination(10000L, TimeUnit.MILLISECONDS);
 
-        final int counter = executor.invokeAll(callables)
-            .stream()
-            .map(future -> {
-                try {
-                    return future.get();
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-            })
-            .mapToInt(Integer::intValue)
-            .sum();
+                                    assertEquals("There should be only one that grabs the lock.", 1, multiThreadAcquireLockCounter.get());
 
-        executor.shutdown();
-
-        assertEquals("There should be only one that grabs the lock.", 1, counter);
-
-        final LockModel lock = lockModelAtomicReference.get();
-        assertNotNull("Expected to successfully grab lock", lock);
-        assertTrue("Failed to release lock.", lockService.release(lock));
-        assertTrue("Failed to delete lock.",lockService.deleteLock(lock.getLockId()));
+                                    final LockModel lock = lockModelAtomicReference.get();
+                                    assertNotNull("Expected to successfully grab lock", lock);
+                                    lockService.release(lock, ActionListener.wrap(
+                                            released -> {
+                                                assertTrue("Failed to release lock.", released);
+                                                lockService.deleteLock(lock.getLockId(), ActionListener.wrap(
+                                                        deleted -> {
+                                                            assertTrue("Failed to delete lock.", deleted);
+                                                            latch.countDown();
+                                                        },
+                                                        exception -> fail(exception.getMessage())
+                                                ));
+                                            },
+                                            exception -> fail(exception.getMessage())
+                                    ));
+                                },
+                                exception -> fail(exception.getMessage())
+                        ));
+                    } else {
+                        fail("Failed to create lock index.");
+                    }
+                },
+                exception -> fail(exception.getMessage())
+        ));
+        assertTrue("Test timed out - possibly leaked into other tests", latch.await(30000L, TimeUnit.MILLISECONDS));
     }
 }
