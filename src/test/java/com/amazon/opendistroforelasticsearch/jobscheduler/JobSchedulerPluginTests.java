@@ -15,10 +15,11 @@
 
 package com.amazon.opendistroforelasticsearch.jobscheduler;
 
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class JobSchedulerPluginTests {
+public class JobSchedulerPluginTests extends ESTestCase {
 
     @Test
     public void dummyTest() {
