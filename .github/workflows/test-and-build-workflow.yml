@@ -11,11 +11,10 @@ jobs:
     strategy:
       matrix:
         java: [12]
-        os: [macos-latest, ubuntu-latest]
     # Job name
     name: Build Job Scheduler with JDK ${{ matrix.java }}
     # This job runs on Linux
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     steps:
       # This step uses the checkout Github action: https://github.com/actions/checkout
       - name: Checkout Branch
