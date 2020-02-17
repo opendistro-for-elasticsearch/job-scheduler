@@ -31,6 +31,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -56,6 +57,8 @@ public final class LockService {
      * https://www.elastic.co/guide/en/elasticsearch/reference/6.x/removal-of-types.html#_schedule_for_removal_of_mapping_types
      */
     private static final String MAPPING_TYPE = "_doc";
+    private static final String INDEX_NUMBER_OF_SHARDS = "index.number_of_shards";
+    private static final String INDEX_NUMBER_OF_REPLICAS = "index.number_of_replicas";
     private static final String LOCK_INDEX_NAME = ".opendistro-job-scheduler-lock";
 
     private final Client client;
@@ -93,7 +96,8 @@ public final class LockService {
             listener.onResponse(true);
         } else {
             final CreateIndexRequest request = new CreateIndexRequest(LOCK_INDEX_NAME)
-                    .mapping(MAPPING_TYPE, lockMapping(), XContentType.JSON);
+                    .mapping(MAPPING_TYPE, lockMapping(), XContentType.JSON)
+                    .settings(Settings.builder().put(INDEX_NUMBER_OF_SHARDS, 1).put(INDEX_NUMBER_OF_REPLICAS, 1));
             client.admin().indices().create(request, ActionListener.wrap(
                response -> listener.onResponse(response.isAcknowledged()),
                exception -> {
@@ -173,6 +177,7 @@ public final class LockService {
             UpdateRequest updateRequest = new UpdateRequest()
                 .index(LOCK_INDEX_NAME)
                 .id(updateLock.getLockId())
+                .type(MAPPING_TYPE)
                 .setIfSeqNo(updateLock.getSeqNo())
                 .setIfPrimaryTerm(updateLock.getPrimaryTerm())
                 .doc(updateLock.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
@@ -203,6 +208,7 @@ public final class LockService {
         try {
             final IndexRequest request = new IndexRequest(LOCK_INDEX_NAME)
                 .id(tempLock.getLockId())
+                .type(MAPPING_TYPE)
                 .source(tempLock.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setIfSeqNo(SequenceNumbers.UNASSIGNED_SEQ_NO)
                 .setIfPrimaryTerm(SequenceNumbers.UNASSIGNED_PRIMARY_TERM)
@@ -212,9 +218,10 @@ public final class LockService {
                     exception -> {
                        if (exception instanceof VersionConflictEngineException) {
                            logger.debug("Lock is already created. {}", exception.getMessage());
-                       }
-                       if (exception instanceof IOException) {
+                       } else if (exception instanceof IOException) {
                            logger.error("IOException occurred creating lock", exception);
+                       } else {
+                           logger.error(exception);
                        }
                        listener.onResponse(null);
                     }
