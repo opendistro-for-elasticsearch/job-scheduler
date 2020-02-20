@@ -19,6 +19,8 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerPlugin;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobExecutionContext;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,11 +46,13 @@ public class JobScheduler {
     private ThreadPool threadPool;
     private ScheduledJobInfo scheduledJobInfo;
     private Clock clock;
+    private final LockService lockService;
 
-    public JobScheduler(ThreadPool threadPool) {
+    public JobScheduler(ThreadPool threadPool, final LockService lockService) {
         this.threadPool = threadPool;
         this.scheduledJobInfo = new ScheduledJobInfo();
         this.clock = Clock.systemDefaultZone();
+        this.lockService = lockService;
     }
 
     @VisibleForTesting
@@ -65,7 +69,8 @@ public class JobScheduler {
         return this.scheduledJobInfo.getJobsByIndex(indexName).keySet();
     }
 
-    public boolean schedule(String indexName, String docId, ScheduledJobParameter scheduledJobParameter, ScheduledJobRunner jobRunner) {
+    public boolean schedule(String indexName, String docId, ScheduledJobParameter scheduledJobParameter,
+                            ScheduledJobRunner jobRunner, JobDocVersion version) {
         if (!scheduledJobParameter.isEnabled()) {
             return false;
         }
@@ -74,14 +79,14 @@ public class JobScheduler {
         synchronized (this.scheduledJobInfo.getJobsByIndex(indexName)) {
             jobInfo = this.scheduledJobInfo.getJobInfo(indexName, docId);
             if (jobInfo == null) {
-                jobInfo = new JobSchedulingInfo(docId, scheduledJobParameter);
+                jobInfo = new JobSchedulingInfo(indexName, docId, scheduledJobParameter);
                 this.scheduledJobInfo.addJob(indexName, docId, jobInfo);
             }
             if (jobInfo.getScheduledCancellable() != null) {
                 return true;
             }
 
-            this.reschedule(scheduledJobParameter, jobInfo, jobRunner);
+            this.reschedule(scheduledJobParameter, jobInfo, jobRunner, version);
         }
 
         return true;
@@ -126,7 +131,8 @@ public class JobScheduler {
     }
 
     @VisibleForTesting
-    boolean reschedule(ScheduledJobParameter jobParameter, JobSchedulingInfo jobInfo, ScheduledJobRunner jobRunner) {
+    boolean reschedule(ScheduledJobParameter jobParameter, JobSchedulingInfo jobInfo, ScheduledJobRunner jobRunner,
+                       JobDocVersion version) {
         if (jobParameter.getEnabledTime() == null) {
             log.info("There is no enable time of job {}, this job should never be scheduled.",
                     jobParameter.getName());
@@ -149,11 +155,12 @@ public class JobScheduler {
             jobInfo.setExpectedPreviousExecutionTime(jobInfo.getExpectedExecutionTime());
             jobInfo.setActualPreviousExecutionTime(clock.instant());
             // schedule next execution
-            this.reschedule(jobParameter, jobInfo, jobRunner);
+            this.reschedule(jobParameter, jobInfo, jobRunner, version);
 
             // invoke job runner
-            JobExecutionContext context = new JobExecutionContext();
-            context.setExpectedExecutionTime(jobInfo.getExpectedPreviousExecutionTime());
+            JobExecutionContext context = new JobExecutionContext(jobInfo.getExpectedPreviousExecutionTime(), version, lockService,
+                jobInfo.getIndexName(), jobInfo.getJobId());
+
             jobRunner.runJob(jobParameter, context);
         };
 

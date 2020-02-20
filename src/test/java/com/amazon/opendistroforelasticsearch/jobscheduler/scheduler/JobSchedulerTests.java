@@ -15,6 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.jobscheduler.scheduler;
 
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.CronSchedule;
@@ -45,9 +46,11 @@ public class JobSchedulerTests {
 
     private JobScheduler scheduler;
 
+    private JobDocVersion dummyVersion = new JobDocVersion(1L, 1L, 1L);
+
     @Before
     public void setup() {
-        this.scheduler = new JobScheduler(this.threadPool);
+        this.scheduler = new JobScheduler(this.threadPool, null);
     }
 
     @Test
@@ -63,11 +66,12 @@ public class JobSchedulerTests {
         Scheduler.ScheduledCancellable cancellable = Mockito.mock(Scheduler.ScheduledCancellable.class);
         Mockito.when(this.threadPool.schedule(Mockito.any(), Mockito.any(), Mockito.anyString())).thenReturn(cancellable);
 
-        boolean scheduled = this.scheduler.schedule("index", "job-id", jobParameter, runner);
+
+        boolean scheduled = this.scheduler.schedule("index", "job-id", jobParameter, runner, dummyVersion);
         Assert.assertTrue(scheduled);
         Mockito.verify(this.threadPool, Mockito.times(1)).schedule(Mockito.any(), Mockito.any(), Mockito.anyString());
 
-        scheduled = this.scheduler.schedule("index", "job-id", jobParameter, runner);
+        scheduled = this.scheduler.schedule("index", "job-id", jobParameter, runner, dummyVersion);
         Assert.assertTrue(scheduled);
         // already scheduled, no extra threadpool call
         Mockito.verify(this.threadPool, Mockito.times(1)).schedule(Mockito.any(), Mockito.any(), Mockito.anyString());
@@ -78,13 +82,13 @@ public class JobSchedulerTests {
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
                 Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(),
                 new CronSchedule("* * * * *", ZoneId.systemDefault()), false);
-        boolean scheduled = this.scheduler.schedule("index-name", "job-id", jobParameter, null);
+        boolean scheduled = this.scheduler.schedule("index-name", "job-id", jobParameter, null, dummyVersion);
         Assert.assertFalse(scheduled);
     }
 
     @Test
     public void testDeschedule_singleJob() {
-        JobSchedulingInfo jobInfo = new JobSchedulingInfo("job-id", null);
+        JobSchedulingInfo jobInfo = new JobSchedulingInfo("job-index", "job-id", null);
         Scheduler.ScheduledCancellable scheduledCancellable = Mockito.mock(Scheduler.ScheduledCancellable.class);
         jobInfo.setScheduledCancellable(scheduledCancellable);
         Mockito.when(scheduledCancellable.cancel()).thenReturn(false);
@@ -108,13 +112,13 @@ public class JobSchedulerTests {
     public void testDeschedule_bulk() {
         Assert.assertTrue(this.scheduler.bulkDeschedule("index-name", null).isEmpty());
 
-        JobSchedulingInfo jobInfo1 = new JobSchedulingInfo("job-id-1", null);
+        JobSchedulingInfo jobInfo1 = new JobSchedulingInfo("job-index", "job-id-1", null);
         Scheduler.ScheduledCancellable scheduledCancellable1 = Mockito.mock(Scheduler.ScheduledCancellable.class);
         jobInfo1.setScheduledCancellable(scheduledCancellable1);
         Mockito.when(scheduledCancellable1.cancel()).thenReturn(false);
         this.scheduler.getScheduledJobInfo().addJob("index-name", "job-id-1", jobInfo1);
 
-        JobSchedulingInfo jobInfo2 = new JobSchedulingInfo("job-id-2", null);
+        JobSchedulingInfo jobInfo2 = new JobSchedulingInfo("job-index", "job-id-2", null);
         Scheduler.ScheduledCancellable scheduledCancellable2 = Mockito.mock(Scheduler.ScheduledCancellable.class);
         jobInfo2.setScheduledCancellable(scheduledCancellable2);
         Mockito.when(scheduledCancellable2.cancel()).thenReturn(true);
@@ -140,7 +144,7 @@ public class JobSchedulerTests {
     public void testReschedule_noEnableTime() {
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
                 null, null, null, false);
-        Assert.assertFalse(this.scheduler.reschedule(jobParameter, null, null));
+        Assert.assertFalse(this.scheduler.reschedule(jobParameter, null, null, dummyVersion));
     }
 
     @Test
@@ -148,13 +152,13 @@ public class JobSchedulerTests {
         Schedule schedule = Mockito.mock(Schedule.class);
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
                 Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), schedule, false);
-        JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-id", jobParameter);
+        JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-index", "job-id", jobParameter);
         Instant now = Instant.now();
         jobSchedulingInfo.setDescheduled(true);
 
         Mockito.when(schedule.getNextExecutionTime(Mockito.any())).thenReturn(Instant.now().plus(1, ChronoUnit.MINUTES));
 
-        Assert.assertFalse(this.scheduler.reschedule(jobParameter, jobSchedulingInfo, null));
+        Assert.assertFalse(this.scheduler.reschedule(jobParameter, jobSchedulingInfo, null, dummyVersion));
     }
 
     @Test
@@ -162,7 +166,7 @@ public class JobSchedulerTests {
         Schedule schedule = Mockito.mock(Schedule.class);
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
                 Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), schedule, false);
-        JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-id", jobParameter);
+        JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-index", "job-id", jobParameter);
         Instant now = Instant.now();
         jobSchedulingInfo.setDescheduled(false);
 
@@ -170,7 +174,7 @@ public class JobSchedulerTests {
         Scheduler.ScheduledCancellable cancellable = Mockito.mock(Scheduler.ScheduledCancellable.class);
         Mockito.when(this.threadPool.schedule(Mockito.any(), Mockito.any(), Mockito.anyString())).thenReturn(cancellable);
 
-        Assert.assertTrue(this.scheduler.reschedule(jobParameter, jobSchedulingInfo, null));
+        Assert.assertTrue(this.scheduler.reschedule(jobParameter, jobSchedulingInfo, null, dummyVersion));
         Assert.assertEquals(cancellable, jobSchedulingInfo.getScheduledCancellable());
         Mockito.verify(this.threadPool).schedule(Mockito.any(), Mockito.any(), Mockito.anyString());
     }

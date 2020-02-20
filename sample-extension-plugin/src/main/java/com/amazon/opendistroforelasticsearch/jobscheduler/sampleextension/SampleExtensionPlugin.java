@@ -69,6 +69,7 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
                                                NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
         SampleJobRunner jobRunner = SampleJobRunner.getJobRunnerInstance();
         jobRunner.setClusterService(clusterService);
+        jobRunner.setThreadPool(threadPool);
 
         return Collections.emptyList();
     }
@@ -90,7 +91,7 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
 
     @Override
     public ScheduledJobParser getJobParser() {
-        return (parser, id, version) -> {
+        return (parser, id, jobDocVersion) -> {
             SampleJobParameter jobParameter = new SampleJobParameter();
             XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser::getTokenLocation);
 
@@ -115,6 +116,9 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
                         break;
                     case SampleJobParameter.INDEX_NAME_FIELD:
                         jobParameter.setIndexToWatch(parser.text());
+                        break;
+                    case SampleJobParameter.LOCK_DURATION_SECONDS:
+                        jobParameter.setLockDurationSeconds(parser.longValue());
                         break;
                     default: XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
                 }

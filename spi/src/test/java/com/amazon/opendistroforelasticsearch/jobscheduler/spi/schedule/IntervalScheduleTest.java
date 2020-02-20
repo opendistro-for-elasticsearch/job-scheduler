@@ -139,4 +139,16 @@ public class IntervalScheduleTest {
         Assert.assertEquals(xContentJsonStr, XContentHelper.toXContent(this.intervalSchedule, XContentType.JSON, false)
                 .utf8ToString());
     }
+
+    @Test
+    public void testIntervalScheduleEqualsAndHashCode() {
+        Long epochMilli = Instant.now().toEpochMilli();
+        IntervalSchedule intervalScheduleOne = new IntervalSchedule(Instant.ofEpochMilli(epochMilli), 5, ChronoUnit.MINUTES);
+        IntervalSchedule intervalScheduleTwo = new IntervalSchedule(Instant.ofEpochMilli(epochMilli), 5, ChronoUnit.MINUTES);
+        IntervalSchedule intervalScheduleThree = new IntervalSchedule(Instant.ofEpochMilli(epochMilli), 4, ChronoUnit.MINUTES);
+
+        Assert.assertEquals(intervalScheduleOne, intervalScheduleTwo);
+        Assert.assertNotEquals(intervalScheduleOne, intervalScheduleThree);
+        Assert.assertEquals(intervalScheduleOne.hashCode(), intervalScheduleTwo.hashCode());
+    }
 }

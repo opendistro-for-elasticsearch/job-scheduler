@@ -18,11 +18,14 @@ package com.amazon.opendistroforelasticsearch.jobscheduler.sampleextension;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobExecutionContext;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
 
@@ -60,6 +63,7 @@ public class SampleJobRunner implements ScheduledJobRunner {
     }
 
     private ClusterService clusterService;
+    private ThreadPool threadPool;
 
     private SampleJobRunner() {
         // Singleton class, use getJobRunner method instead of constructor
@@ -68,7 +72,9 @@ public class SampleJobRunner implements ScheduledJobRunner {
     public void setClusterService(ClusterService clusterService) {
         this.clusterService = clusterService;
     }
-
+    public void setThreadPool(ThreadPool threadPool) {
+        this.threadPool = threadPool;
+    }
 
     @Override
     public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
@@ -81,16 +87,48 @@ public class SampleJobRunner implements ScheduledJobRunner {
             throw new IllegalStateException("ClusterService is not initialized.");
         }
 
-        SampleJobParameter parameter = (SampleJobParameter)jobParameter;
-        StringBuilder msg = new StringBuilder();
-        msg.append("Watching index " + parameter.getIndexToWatch() + "\n");
-
-
-        List<ShardRouting> shardRoutingList = this.clusterService.state().routingTable().allShards(parameter.getIndexToWatch());
-        for(ShardRouting shardRouting : shardRoutingList) {
-            msg.append(shardRouting.shardId().getId() + "\t" + shardRouting.currentNodeId() +
-                    "\t" + (shardRouting.active() ? "active" : "inactive") + "\n");
+        if (this.threadPool == null) {
+            throw new IllegalStateException("ThreadPool is not initialized.");
         }
-        log.info(msg.toString());
+
+        final LockService lockService = context.getLockService();
+
+        Runnable runnable = () -> {
+            if (jobParameter.getLockDurationSeconds() != null) {
+                lockService.acquireLock(jobParameter, context, ActionListener.wrap(
+                        lock -> {
+                            if (lock == null) {
+                                return;
+                            }
+
+                            SampleJobParameter parameter = (SampleJobParameter) jobParameter;
+                            StringBuilder msg = new StringBuilder();
+                            msg.append("Watching index ").append(parameter.getIndexToWatch()).append("\n");
+
+                            List<ShardRouting> shardRoutingList = this.clusterService.state()
+                                    .routingTable().allShards(parameter.getIndexToWatch());
+                            for(ShardRouting shardRouting : shardRoutingList) {
+                                msg.append(shardRouting.shardId().getId()).append("\t").append(shardRouting.currentNodeId()).append("\t")
+                                        .append(shardRouting.active() ? "active" : "inactive").append("\n");
+                            }
+                            log.info(msg.toString());
+
+                            lockService.release(lock, ActionListener.wrap(
+                                    released -> {
+                                        log.info("Released lock for job {}", jobParameter.getName());
+                                    },
+                                    exception -> {
+                                        throw new IllegalStateException("Failed to release lock.");
+                                    }
+                            ));
+                        },
+                        exception -> {
+                            throw new IllegalStateException("Failed to acquire lock.");
+                        }
+                ));
+            }
+        };
+
+        threadPool.generic().submit(runnable);
     }
 }

@@ -18,12 +18,16 @@ package com.amazon.opendistroforelasticsearch.jobscheduler.sweeper;
 import com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerSettings;
 import com.amazon.opendistroforelasticsearch.jobscheduler.ScheduledJobProvider;
 import com.amazon.opendistroforelasticsearch.jobscheduler.scheduler.JobScheduler;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobDocVersion;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParser;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
+import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -58,6 +62,7 @@ import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -119,8 +124,9 @@ public class JobSweeperTests extends ESAllocationTestCase {
                 this.jobParser, this.jobRunner);
         Map<String, ScheduledJobProvider> jobProviderMap = new HashMap<>();
         jobProviderMap.put("index-name", jobProvider);
+
         sweeper = new JobSweeper(settings, this.client, this.clusterService, this.threadPool, xContentRegistry,
-                jobProviderMap, scheduler);
+                jobProviderMap, scheduler, new LockService(client, clusterService));
     }
 
     @Test
@@ -139,7 +145,8 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         this.sweeper.initBackgroundSweep();
         Mockito.verify(cancellable).cancel();
-        Mockito.verify(this.threadPool, Mockito.times(2)).scheduleWithFixedDelay(Mockito.any(), Mockito.any(), Mockito.anyString());
+        Mockito.verify(this.threadPool, Mockito.times(2))
+                .scheduleWithFixedDelay(Mockito.any(), Mockito.any(), Mockito.anyString());
     }
 
     @Test
@@ -193,12 +200,14 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         Mockito.when(this.clusterService.state()).thenReturn(clusterState);
         JobSweeper testSweeper = Mockito.spy(this.sweeper);
-        Mockito.doNothing().when(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.anyLong(), Mockito.any());
+        Mockito.doNothing().when(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.any(BytesReference.class),
+                Mockito.any(JobDocVersion.class));
         for (int i = 0; i<clusterState.getNodes().getSize(); i++) {
             testSweeper.postIndex(shardId, index, indexResult);
         }
 
-        Mockito.verify(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.anyLong(), Mockito.any());
+        Mockito.verify(testSweeper).sweep(Mockito.any(), Mockito.anyString(), Mockito.any(BytesReference.class),
+                Mockito.any(JobDocVersion.class));
     }
 
     @Test
@@ -222,6 +231,11 @@ public class JobSweeperTests extends ESAllocationTestCase {
         jobIdSet.add("doc-id");
         Mockito.when(this.scheduler.getScheduledJobIds("index-name")).thenReturn(jobIdSet);
 
+        ActionFuture<DeleteResponse> actionFuture = Mockito.mock(ActionFuture.class);
+        Mockito.when(this.client.delete(Mockito.any())).thenReturn(actionFuture);
+        DeleteResponse response = new DeleteResponse(new ShardId(new Index("name","uuid"), 0), "type", "id", 1L, 2L, 3L, true);
+        Mockito.when(actionFuture.actionGet()).thenReturn(response);
+
         this.sweeper.postDelete(shardId, delete, deleteResult);
 
         Mockito.verify(this.scheduler).deschedule("index-name", "doc-id");
@@ -242,15 +256,18 @@ public class JobSweeperTests extends ESAllocationTestCase {
     public void testSweep() throws IOException {
         ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
 
-        this.sweeper.sweep(shardId, "id", 2L, this.getTestJsonSource());
-        Mockito.verify(this.scheduler, Mockito.times(0)).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any());
+        this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
+        Mockito.verify(this.scheduler, Mockito.times(0)).schedule(Mockito.anyString(), Mockito.anyString(),
+                Mockito.any(), Mockito.any(), Mockito.any(JobDocVersion.class));
 
         ScheduledJobParameter mockJobParameter = Mockito.mock(ScheduledJobParameter.class);
         Mockito.when(mockJobParameter.isEnabled()).thenReturn(true);
-        Mockito.when(this.jobParser.parse(Mockito.any(), Mockito.anyString(), Mockito.anyLong())).thenReturn(mockJobParameter);
+        Mockito.when(this.jobParser.parse(Mockito.any(), Mockito.anyString(), Mockito.any(JobDocVersion.class)))
+            .thenReturn(mockJobParameter);
 
-        this.sweeper.sweep(shardId, "id", 2L, this.getTestJsonSource());
-        Mockito.verify(this.scheduler).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any());
+        this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
+        Mockito.verify(this.scheduler).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any(),
+                Mockito.any(JobDocVersion.class));
     }
 
     private ClusterState addNodesToCluter(ClusterState clusterState, int nodeCount) {
@@ -282,14 +299,20 @@ public class JobSweeperTests extends ESAllocationTestCase {
         docs.add(new ParseContext.Document());
         BytesReference source = this.getTestJsonSource();
 
-        Term uid = new Term("id_field", new BytesRef(docId.getBytes(), 0, docId.getBytes().length));
+        Term uid = new Term(
+            "id_field",
+            new BytesRef(docId.getBytes(Charset.defaultCharset()), 0, docId.getBytes(Charset.defaultCharset()).length)
+        );
         ParsedDocument parsedDocument = new ParsedDocument(null, null, docId, "_doc", null, docs, source, null, null);
 
         return new Engine.Index(uid, primaryTerm, parsedDocument);
     }
 
     private Engine.Delete getDeleteOperation(String docId) {
-        Term uid = new Term("id_field", new BytesRef(docId.getBytes(), 0, docId.getBytes().length));
+        Term uid = new Term(
+            "id_field",
+            new BytesRef(docId.getBytes(Charset.defaultCharset()), 0, docId.getBytes(Charset.defaultCharset()).length)
+        );
         return new Engine.Delete("_doc", docId, uid, 1L);
     }
 
