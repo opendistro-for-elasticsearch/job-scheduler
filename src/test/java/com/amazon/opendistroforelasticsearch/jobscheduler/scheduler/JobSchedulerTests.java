@@ -20,16 +20,16 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParame
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.CronSchedule;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.Schedule;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -38,10 +38,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(RandomizedRunner.class)
 @SuppressWarnings({"rawtypes"})
-public class JobSchedulerTests {
-    @Mock
+public class JobSchedulerTests extends ESTestCase {
     private ThreadPool threadPool;
 
     private JobScheduler scheduler;
@@ -50,6 +49,7 @@ public class JobSchedulerTests {
 
     @Before
     public void setup() {
+        this.threadPool = Mockito.mock(ThreadPool.class);
         this.scheduler = new JobScheduler(this.threadPool, null);
     }
 
@@ -151,12 +151,14 @@ public class JobSchedulerTests {
     public void testReschedule_jobDescheduled() {
         Schedule schedule = Mockito.mock(Schedule.class);
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
-                Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), schedule, false);
+                Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), schedule, false, 0.6);
         JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-index", "job-id", jobParameter);
         Instant now = Instant.now();
         jobSchedulingInfo.setDescheduled(true);
 
-        Mockito.when(schedule.getNextExecutionTime(Mockito.any())).thenReturn(Instant.now().plus(1, ChronoUnit.MINUTES));
+        Mockito.when(schedule.getNextExecutionTime(Mockito.any()))
+            .thenReturn(now.plus(1, ChronoUnit.MINUTES))
+            .thenReturn(now.plus(2, ChronoUnit.MINUTES));
 
         Assert.assertFalse(this.scheduler.reschedule(jobParameter, jobSchedulingInfo, null, dummyVersion));
     }
@@ -165,12 +167,15 @@ public class JobSchedulerTests {
     public void testReschedule_scheduleJob() {
         Schedule schedule = Mockito.mock(Schedule.class);
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
-                Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), schedule, false);
+                Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), schedule, false, 0.6);
         JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-index", "job-id", jobParameter);
         Instant now = Instant.now();
         jobSchedulingInfo.setDescheduled(false);
 
-        Mockito.when(schedule.getNextExecutionTime(Mockito.any())).thenReturn(Instant.now().plus(1, ChronoUnit.MINUTES));
+        Mockito.when(schedule.getNextExecutionTime(Mockito.any()))
+            .thenReturn(Instant.now().plus(1, ChronoUnit.MINUTES))
+            .thenReturn(Instant.now().plus(2, ChronoUnit.MINUTES));
+
         Scheduler.ScheduledCancellable cancellable = Mockito.mock(Scheduler.ScheduledCancellable.class);
         Mockito.when(this.threadPool.schedule(Mockito.any(), Mockito.any(), Mockito.anyString())).thenReturn(cancellable);
 
@@ -180,7 +185,12 @@ public class JobSchedulerTests {
     }
 
     static ScheduledJobParameter buildScheduledJobParameter(String id, String name, Instant updateTime,
-            Instant enableTime, Schedule schedule, boolean enabled) {
+        Instant enableTime, Schedule schedule, boolean enabled) {
+        return buildScheduledJobParameter(id, name, updateTime, enableTime, schedule, enabled, null);
+    }
+
+    static ScheduledJobParameter buildScheduledJobParameter(String id, String name, Instant updateTime,
+            Instant enableTime, Schedule schedule, boolean enabled, Double jitter) {
         return new ScheduledJobParameter() {
             @Override
             public String getName() {
@@ -205,6 +215,10 @@ public class JobSchedulerTests {
             @Override
             public boolean isEnabled() {
                 return enabled;
+            }
+
+            @Override public Double getJitter() {
+                return jitter;
             }
 
             @Override

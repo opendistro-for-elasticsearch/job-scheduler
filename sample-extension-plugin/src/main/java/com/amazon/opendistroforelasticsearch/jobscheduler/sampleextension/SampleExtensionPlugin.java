@@ -120,6 +120,9 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
                     case SampleJobParameter.LOCK_DURATION_SECONDS:
                         jobParameter.setLockDurationSeconds(parser.longValue());
                         break;
+                    case SampleJobParameter.JITTER:
+                        jobParameter.setJitter(parser.doubleValue());
+                        break;
                     default: XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
                 }
             }

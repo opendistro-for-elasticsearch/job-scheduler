@@ -24,6 +24,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -145,6 +146,19 @@ public class JobScheduler {
             return true;
         }
         Duration duration = Duration.between(this.clock.instant(), nextExecutionTime);
+
+        Instant secondExecutionTimeFromNow = jobParameter.getSchedule().getNextExecutionTime(nextExecutionTime);
+        if(secondExecutionTimeFromNow != null) {
+            Duration interval = Duration.between(nextExecutionTime, secondExecutionTimeFromNow);
+            if (interval.toMillis() > 0) {
+                double jitter = jobParameter.getJitter() == null ? 0d : jobParameter.getJitter();
+                jitter = jitter > 1 ? 1 : jitter;
+                jitter = jitter < 0 ? 0 : jitter;
+                long jitterMillis = Math.round(Randomness.get().nextLong() % interval.toMillis() * jitter);
+                duration = duration.plusMillis(jitterMillis);
+            }
+        }
+
         jobInfo.setExpectedExecutionTime(nextExecutionTime);
 
         Runnable runnable = () -> {

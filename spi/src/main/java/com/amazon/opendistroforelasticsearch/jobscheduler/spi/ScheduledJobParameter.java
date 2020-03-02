@@ -55,4 +55,9 @@ public interface ScheduledJobParameter extends ToXContentObject {
     default Long getLockDurationSeconds() {
         return null;
     }
+
+    /**
+     * @return job execution jitter, 0 <= jitter <= 1
+     */
+    default Double getJitter() {return null;}
 }
