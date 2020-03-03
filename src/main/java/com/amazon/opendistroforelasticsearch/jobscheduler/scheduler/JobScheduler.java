@@ -71,7 +71,7 @@ public class JobScheduler {
     }
 
     public boolean schedule(String indexName, String docId, ScheduledJobParameter scheduledJobParameter,
-                            ScheduledJobRunner jobRunner, JobDocVersion version) {
+                            ScheduledJobRunner jobRunner, JobDocVersion version, Double jitterLimit) {
         if (!scheduledJobParameter.isEnabled()) {
             return false;
         }
@@ -87,7 +87,7 @@ public class JobScheduler {
                 return true;
             }
 
-            this.reschedule(scheduledJobParameter, jobInfo, jobRunner, version);
+            this.reschedule(scheduledJobParameter, jobInfo, jobRunner, version, jitterLimit);
         }
 
         return true;
@@ -133,7 +133,7 @@ public class JobScheduler {
 
     @VisibleForTesting
     boolean reschedule(ScheduledJobParameter jobParameter, JobSchedulingInfo jobInfo, ScheduledJobRunner jobRunner,
-                       JobDocVersion version) {
+                       JobDocVersion version, Double jitterLimit) {
         if (jobParameter.getEnabledTime() == null) {
             log.info("There is no enable time of job {}, this job should never be scheduled.",
                     jobParameter.getName());
@@ -152,7 +152,7 @@ public class JobScheduler {
             Duration interval = Duration.between(nextExecutionTime, secondExecutionTimeFromNow);
             if (interval.toMillis() > 0) {
                 double jitter = jobParameter.getJitter() == null ? 0d : jobParameter.getJitter();
-                jitter = jitter > 1 ? 1 : jitter;
+                jitter = jitter > jitterLimit ? jitterLimit : jitter;
                 jitter = jitter < 0 ? 0 : jitter;
                 long jitterMillis = Math.round(Randomness.get().nextLong() % interval.toMillis() * jitter);
                 duration = duration.plusMillis(jitterMillis);
@@ -169,7 +169,7 @@ public class JobScheduler {
             jobInfo.setExpectedPreviousExecutionTime(jobInfo.getExpectedExecutionTime());
             jobInfo.setActualPreviousExecutionTime(clock.instant());
             // schedule next execution
-            this.reschedule(jobParameter, jobInfo, jobRunner, version);
+            this.reschedule(jobParameter, jobInfo, jobRunner, version, jitterLimit);
 
             // invoke job runner
             JobExecutionContext context = new JobExecutionContext(jobInfo.getExpectedPreviousExecutionTime(), version, lockService,

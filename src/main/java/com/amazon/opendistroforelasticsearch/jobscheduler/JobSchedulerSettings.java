@@ -43,4 +43,11 @@ public class JobSchedulerSettings {
             "opendistro.jobscheduler.sweeper.page_size",
             100,
             Setting.Property.NodeScope, Setting.Property.Dynamic);
+
+    public static final Setting<Double> JITTER_LIMIT = Setting.doubleSetting(
+            "opendistro.jobscheduler.jitter_limit",
+            0.95, 0, 0.95,
+            Setting.Property.NodeScope, Setting.Property.Dynamic);
+
+
 }
