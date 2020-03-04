@@ -36,6 +36,7 @@ public class SampleJobParameter implements ScheduledJobParameter {
     public static final String ENABLED_TIME_FILED = "enabled_time";
     public static final String INDEX_NAME_FIELD = "index_name_to_watch";
     public static final String LOCK_DURATION_SECONDS = "lock_duration_seconds";
+    public static final String JITTER = "jitter";
 
     private String jobName;
     private Instant lastUpdateTime;
@@ -44,11 +45,12 @@ public class SampleJobParameter implements ScheduledJobParameter {
     private Schedule schedule;
     private String indexToWatch;
     private Long lockDurationSeconds;
+    private Double jitter;
 
     public SampleJobParameter() {
     }
 
-    public SampleJobParameter(String id, String name, String indexToWatch, Schedule schedule, Long lockDurationSeconds) {
+    public SampleJobParameter(String id, String name, String indexToWatch, Schedule schedule, Long lockDurationSeconds, Double jitter) {
         this.jobName = name;
         this.indexToWatch = indexToWatch;
         this.schedule = schedule;
@@ -58,6 +60,7 @@ public class SampleJobParameter implements ScheduledJobParameter {
         this.enabledTime = now;
         this.lastUpdateTime = now;
         this.lockDurationSeconds = lockDurationSeconds;
+        this.jitter = jitter;
     }
 
     @Override
@@ -88,6 +91,10 @@ public class SampleJobParameter implements ScheduledJobParameter {
     @Override
     public Long getLockDurationSeconds() {
         return this.lockDurationSeconds;
+    }
+
+    @Override public Double getJitter() {
+        return jitter;
     }
 
     public String getIndexToWatch() {
@@ -122,6 +129,10 @@ public class SampleJobParameter implements ScheduledJobParameter {
         this.lockDurationSeconds = lockDurationSeconds;
     }
 
+    public void setJitter(Double jitter) {
+        this.jitter = jitter;
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -137,6 +148,9 @@ public class SampleJobParameter implements ScheduledJobParameter {
         }
         if (this.lockDurationSeconds != null) {
             builder.field(LOCK_DURATION_SECONDS, this.lockDurationSeconds);
+        }
+        if (this.jitter != null) {
+            builder.field(JITTER, this.jitter);
         }
         builder.endObject();
         return builder;

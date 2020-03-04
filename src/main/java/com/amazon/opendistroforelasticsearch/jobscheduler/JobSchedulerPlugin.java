@@ -95,6 +95,7 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
         settingList.add(JobSchedulerSettings.SWEEP_BACKOFF_MILLIS);
         settingList.add(JobSchedulerSettings.SWEEP_BACKOFF_RETRY_COUNT);
         settingList.add(JobSchedulerSettings.SWEEP_PERIOD);
+        settingList.add(JobSchedulerSettings.JITTER_LIMIT);
         return settingList;
     }
 
