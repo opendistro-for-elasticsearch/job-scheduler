@@ -101,6 +101,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
     private volatile TimeValue sweepSearchBackoffMillis;
     private volatile Integer sweepSearchBackoffRetryCount;
     private volatile BackoffPolicy sweepSearchBackoff;
+    private volatile Double jitterLimit;
 
     public JobSweeper(Settings settings, Client client, ClusterService clusterService, ThreadPool threadPool,
                       NamedXContentRegistry registry, Map<String, ScheduledJobProvider> indexToProviders, JobScheduler scheduler,
@@ -128,6 +129,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
         this.sweepSearchTimeout = JobSchedulerSettings.REQUEST_TIMEOUT.get(settings);
         this.sweepSearchBackoffMillis = JobSchedulerSettings.SWEEP_BACKOFF_MILLIS.get(settings);
         this.sweepSearchBackoffRetryCount = JobSchedulerSettings.SWEEP_BACKOFF_RETRY_COUNT.get(settings);
+        this.jitterLimit = JobSchedulerSettings.JITTER_LIMIT.get(settings);
         this.sweepSearchBackoff = this.updateRetryPolicy();
     }
 
@@ -152,6 +154,8 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                     this.sweepSearchBackoffRetryCount = intValue;
                     this.sweepSearchBackoff = this.updateRetryPolicy();
                 });
+        clusterService.getClusterSettings().addSettingsUpdateConsumer(JobSchedulerSettings.JITTER_LIMIT,
+                doubleValue -> this.jitterLimit = doubleValue);
     }
 
     private BackoffPolicy updateRetryPolicy() {
@@ -247,7 +251,7 @@ public class JobSweeper extends LifecycleListener implements IndexingOperationLi
                     }
                     ScheduledJobRunner jobRunner = this.indexToProviders.get(shardId.getIndexName()).getJobRunner();
                     if (jobParameter.isEnabled()) {
-                        this.scheduler.schedule(shardId.getIndexName(), docId, jobParameter, jobRunner, jobDocVersion);
+                        this.scheduler.schedule(shardId.getIndexName(), docId, jobParameter, jobRunner, jobDocVersion, jitterLimit);
                     }
                     return jobDocVersion;
                 } catch (Exception e) {

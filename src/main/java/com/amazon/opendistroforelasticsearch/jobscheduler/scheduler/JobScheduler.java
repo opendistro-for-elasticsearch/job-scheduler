@@ -24,6 +24,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.utils.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -70,7 +71,7 @@ public class JobScheduler {
     }
 
     public boolean schedule(String indexName, String docId, ScheduledJobParameter scheduledJobParameter,
-                            ScheduledJobRunner jobRunner, JobDocVersion version) {
+                            ScheduledJobRunner jobRunner, JobDocVersion version, Double jitterLimit) {
         if (!scheduledJobParameter.isEnabled()) {
             return false;
         }
@@ -86,7 +87,7 @@ public class JobScheduler {
                 return true;
             }
 
-            this.reschedule(scheduledJobParameter, jobInfo, jobRunner, version);
+            this.reschedule(scheduledJobParameter, jobInfo, jobRunner, version, jitterLimit);
         }
 
         return true;
@@ -132,7 +133,7 @@ public class JobScheduler {
 
     @VisibleForTesting
     boolean reschedule(ScheduledJobParameter jobParameter, JobSchedulingInfo jobInfo, ScheduledJobRunner jobRunner,
-                       JobDocVersion version) {
+                       JobDocVersion version, Double jitterLimit) {
         if (jobParameter.getEnabledTime() == null) {
             log.info("There is no enable time of job {}, this job should never be scheduled.",
                     jobParameter.getName());
@@ -145,6 +146,24 @@ public class JobScheduler {
             return true;
         }
         Duration duration = Duration.between(this.clock.instant(), nextExecutionTime);
+
+        // Too many jobs start at the same time point will bring burst. Add random jitter delay to spread out load.
+        // Example, if interval is 10 minutes, jitter is 0.6, next job run will be randomly delayed by 0 to 10*0.6 minutes.
+        Instant secondExecutionTimeFromNow = jobParameter.getSchedule().getNextExecutionTime(nextExecutionTime);
+        if (secondExecutionTimeFromNow != null) {
+            Duration interval = Duration.between(nextExecutionTime, secondExecutionTimeFromNow);
+            if (interval.toMillis() > 0) {
+                double jitter = jobParameter.getJitter() == null ? 0d : jobParameter.getJitter();
+                jitter = jitter > jitterLimit ? jitterLimit : jitter;
+                jitter = jitter < 0 ? 0 : jitter;
+                long jitterMillis = Math.round(Randomness.get().nextLong() % interval.toMillis() * jitter);
+                if (jitter > 0) {
+                    log.info("Will delay {} miliseconds for next execution of job {}", jitterMillis, jobParameter.getName());
+                }
+                duration = duration.plusMillis(jitterMillis);
+            }
+        }
+
         jobInfo.setExpectedExecutionTime(nextExecutionTime);
 
         Runnable runnable = () -> {
@@ -155,7 +174,7 @@ public class JobScheduler {
             jobInfo.setExpectedPreviousExecutionTime(jobInfo.getExpectedExecutionTime());
             jobInfo.setActualPreviousExecutionTime(clock.instant());
             // schedule next execution
-            this.reschedule(jobParameter, jobInfo, jobRunner, version);
+            this.reschedule(jobParameter, jobInfo, jobRunner, version, jitterLimit);
 
             // invoke job runner
             JobExecutionContext context = new JobExecutionContext(jobInfo.getExpectedPreviousExecutionTime(), version, lockService,
