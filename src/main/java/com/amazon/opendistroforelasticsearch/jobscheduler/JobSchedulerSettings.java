@@ -46,7 +46,7 @@ public class JobSchedulerSettings {
 
     public static final Setting<Double> JITTER_LIMIT = Setting.doubleSetting(
             "opendistro.jobscheduler.jitter_limit",
-            0.95, 0, 0.95,
+            0.60, 0, 0.95,
             Setting.Property.NodeScope, Setting.Property.Dynamic);
 
 
