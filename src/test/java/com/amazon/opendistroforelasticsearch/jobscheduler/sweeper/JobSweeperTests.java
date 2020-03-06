@@ -87,6 +87,8 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
     private DiscoveryNode discoveryNode;
 
+    private Double jitterLimit = 0.95;
+
     @Before
     public void setup() throws IOException {
         this.client = Mockito.mock(Client.class);
@@ -112,6 +114,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
         settingSet.add(JobSchedulerSettings.SWEEP_BACKOFF_RETRY_COUNT);
         settingSet.add(JobSchedulerSettings.SWEEP_BACKOFF_MILLIS);
         settingSet.add(JobSchedulerSettings.SWEEP_PAGE_SIZE);
+        settingSet.add(JobSchedulerSettings.JITTER_LIMIT);
 
         ClusterSettings clusterSettings = new ClusterSettings(this.settings, settingSet);
         ClusterService originClusterService = ClusterServiceUtils.createClusterService(this.threadPool, discoveryNode, clusterSettings);
@@ -255,7 +258,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
         Mockito.verify(this.scheduler, Mockito.times(0)).schedule(Mockito.anyString(), Mockito.anyString(),
-                Mockito.any(), Mockito.any(), Mockito.any(JobDocVersion.class));
+                Mockito.any(), Mockito.any(), Mockito.any(JobDocVersion.class), Mockito.any(Double.class));
 
         ScheduledJobParameter mockJobParameter = Mockito.mock(ScheduledJobParameter.class);
         Mockito.when(mockJobParameter.isEnabled()).thenReturn(true);
@@ -264,7 +267,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
 
         this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
         Mockito.verify(this.scheduler).schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any(),
-                Mockito.any(JobDocVersion.class));
+                Mockito.any(JobDocVersion.class), Mockito.any(Double.class));
     }
 
     private ClusterState addNodesToCluter(ClusterState clusterState, int nodeCount) {

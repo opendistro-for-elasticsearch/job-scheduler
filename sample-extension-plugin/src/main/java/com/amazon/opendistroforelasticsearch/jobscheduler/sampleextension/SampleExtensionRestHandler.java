@@ -70,12 +70,14 @@ public class SampleExtensionRestHandler extends BaseRestHandler {
             String interval = request.param("interval");
             String lockDurationSecondsString = request.param("lock_duration_seconds");
             Long lockDurationSeconds = lockDurationSecondsString != null ? Long.parseLong(lockDurationSecondsString) : null;
+            String jitterString = request.param("jitter");
+            Double jitter = jitterString != null ? Double.parseDouble(jitterString) : null;
 
             if(id == null || indexName ==null) {
                 throw new IllegalArgumentException("Must specify id and index parameter");
             }
             SampleJobParameter jobParameter = new SampleJobParameter(id, jobName, indexName,
-                    new IntervalSchedule(Instant.now(), Integer.parseInt(interval), ChronoUnit.MINUTES), lockDurationSeconds);
+                    new IntervalSchedule(Instant.now(), Integer.parseInt(interval), ChronoUnit.MINUTES), lockDurationSeconds, jitter);
             IndexRequest indexRequest = new IndexRequest()
                     .index(SampleExtensionPlugin.JOB_INDEX_NAME)
                     .id(id)
