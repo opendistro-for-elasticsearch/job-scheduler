@@ -1,16 +1,16 @@
-name: Upload Notification Jar to Maven
+name: Upload Job-Scheduler Jar to Maven
 
 on:
   push:
     tags: 
       - v*
 jobs:
-  upload-notification-jar:
+  upload-job-scheduler-jar:
     runs-on: [ubuntu-16.04]
     strategy:
       matrix:
         java: [12]
-    name: Upload Notification Jar to Maven
+    name: Upload Job-Scheduler Jar to Maven
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v1
@@ -27,7 +27,7 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
 
-      - name: Upload Notification Jar to Maven
+      - name: Upload Job-Scheduler Jar to Maven
         env:
           passphrase: ${{ secrets.PASSPHRASE }}
         run: |
