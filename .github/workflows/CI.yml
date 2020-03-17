@@ -6,7 +6,7 @@ on:
       - opendistro-*
 
 jobs:
-  build:
+  Build-Job-Scheduler:
     strategy:
       matrix:
         java: [12]
