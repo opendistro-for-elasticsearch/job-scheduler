@@ -1,0 +1,28 @@
+name: Build and Test Job-Scheduler
+on:
+  push:
+    branches:
+      - master
+      - opendistro-*
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        java: [12]
+
+    name: Build and Test Job-Scheduler Plugin
+    runs-on: [ubuntu-16.04]
+
+    steps:
+      - name: Checkout Job-Scheduler
+        uses: actions/checkout@v1
+        
+      - name: Setup Java ${{ matrix.java }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+      
+      - name: Run build
+        run: |
+          ./gradlew build
