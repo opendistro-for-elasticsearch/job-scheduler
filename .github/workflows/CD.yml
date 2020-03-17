@@ -1,0 +1,37 @@
+name: Release Job-Scheduler Artefacts
+on:
+  push:
+    branches:
+      - master
+      - opendistro-*
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        java: [12]
+
+    name: Build and Release Job-Scheduler Plugin
+    runs-on: [ubuntu-16.04]
+
+    steps:
+      - name: Checkout Job-Scheduler
+        uses: actions/checkout@v1
+              
+      - name: Setup Java ${{ matrix.java }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+      
+      - name: Run build
+        run: |
+          #!/bin/bash
+          ./gradlew build buildDeb buildRpm --console=plain -Dbuild.snapshot=false
+          artifact=`ls build/distributions/*.zip`
+          rpm_artifact=`ls build/distributions/*.rpm`
+          deb_artifact=`ls build/distributions/*.deb`
+          
+          echo $artifact
+          echo $rpm_artifact
+          echo $deb_artifact
+          
