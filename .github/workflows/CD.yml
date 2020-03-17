@@ -1,12 +1,11 @@
-name: Release Job-Scheduler Artefacts
+name: Release Job-Scheduler Artifacts
 on:
   push:
     branches:
-      - master
       - opendistro-*
 
 jobs:
-  build:
+  Release-Job-Scheduler-Artifacts:
     strategy:
       matrix:
         java: [12]
