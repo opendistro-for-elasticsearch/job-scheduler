@@ -12,7 +12,7 @@ jobs:
         java: [12]
 
     name: Build and Test Job-Scheduler Plugin
-    runs-on: [ubuntu-16.04]
+    runs-on: macos-latest
 
     steps:
       - name: Checkout Job-Scheduler
