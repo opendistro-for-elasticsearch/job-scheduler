@@ -36,6 +36,7 @@ dependencies {
 testingConventions.enabled = false;
 
 testClusters.integTest {
-    testDistribution = 'oss'
+    testDistribution = 'OSS'
+    // install job-scheduler plugin first, then install your plugin
     // plugin(rootProject.getPath())
 }

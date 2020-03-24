@@ -57,7 +57,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
-import org.junit.Test;
+// import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
 
@@ -129,13 +129,13 @@ public class JobSweeperTests extends ESAllocationTestCase {
                 jobProviderMap, scheduler, new LockService(client, clusterService));
     }
 
-    @Test
+    // // @Test
     public void testAfterStart() {
         this.sweeper.afterStart();
         Mockito.verify(this.threadPool).scheduleWithFixedDelay(Mockito.any(), Mockito.any(), Mockito.anyString());
     }
 
-    @Test
+    // // @Test
     public void testInitBackgroundSweep() {
         Scheduler.Cancellable cancellable = Mockito.mock(Scheduler.Cancellable.class);
         Mockito.when(this.threadPool.scheduleWithFixedDelay(Mockito.any(), Mockito.any(), Mockito.anyString())).thenReturn(cancellable);
@@ -149,7 +149,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
                 .scheduleWithFixedDelay(Mockito.any(), Mockito.any(), Mockito.anyString());
     }
 
-    @Test
+    // @Test
     public void testBeforeStop() {
         Scheduler.Cancellable cancellable = Mockito.mock(Scheduler.Cancellable.class);
 
@@ -162,12 +162,12 @@ public class JobSweeperTests extends ESAllocationTestCase {
         Mockito.verify(cancellable).cancel();
     }
 
-    @Test
+    // @Test
     public void testBeforeClose() {
         this.sweeper.beforeClose(); // nothing to verify
     }
 
-    @Test
+    // @Test
     public void testPostIndex() {
         ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
         Engine.Index index = this.getIndexOperation();
@@ -210,7 +210,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
                 Mockito.any(JobDocVersion.class));
     }
 
-    @Test
+    // @Test
     public void testPostIndex_indexFailed() {
         ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
         Engine.Index index = this.getIndexOperation();
@@ -221,7 +221,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
         Mockito.verify(this.clusterService, Mockito.times(0)).localNode();
     }
 
-    @Test
+    // @Test
     public void testPostDelete() {
         ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
         Engine.Delete delete = this.getDeleteOperation("doc-id");
@@ -241,7 +241,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
         Mockito.verify(this.scheduler).deschedule("index-name", "doc-id");
     }
 
-    @Test
+    // @Test
     public void testPostDelete_deletionFailed() {
         ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
         Engine.Delete delete = this.getDeleteOperation("doc-id");
@@ -252,7 +252,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
         Mockito.verify(this.scheduler, Mockito.times(0)).deschedule("index-name", "doc-id");
     }
 
-    @Test
+    // @Test
     public void testSweep() throws IOException {
         ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
 

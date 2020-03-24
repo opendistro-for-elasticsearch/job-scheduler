@@ -62,7 +62,7 @@ esplugin {
 }
 
 testClusters.integTest {
-    testDistribution = 'oss'
+    testDistribution = 'OSS'
 }
 
 integTest.runner {
