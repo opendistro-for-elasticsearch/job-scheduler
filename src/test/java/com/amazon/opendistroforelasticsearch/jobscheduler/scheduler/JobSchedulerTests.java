@@ -27,7 +27,6 @@ import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Assert;
 import org.junit.Before;
-// import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 
@@ -54,7 +53,6 @@ public class JobSchedulerTests extends ESTestCase {
         this.scheduler = new JobScheduler(this.threadPool, null);
     }
 
-    // @Test
     public void testSchedule() {
         Schedule schedule = Mockito.mock(Schedule.class);
         ScheduledJobRunner runner = Mockito.mock(ScheduledJobRunner.class);
@@ -78,7 +76,6 @@ public class JobSchedulerTests extends ESTestCase {
         Mockito.verify(this.threadPool, Mockito.times(1)).schedule(Mockito.any(), Mockito.any(), Mockito.anyString());
     }
 
-    // @Test
     public void testSchedule_disabledJob() {
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
                 Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(),
@@ -87,7 +84,6 @@ public class JobSchedulerTests extends ESTestCase {
         Assert.assertFalse(scheduled);
     }
 
-    // @Test
     public void testDeschedule_singleJob() {
         JobSchedulingInfo jobInfo = new JobSchedulingInfo("job-index", "job-id", null);
         Scheduler.ScheduledCancellable scheduledCancellable = Mockito.mock(Scheduler.ScheduledCancellable.class);
@@ -109,7 +105,6 @@ public class JobSchedulerTests extends ESTestCase {
         Assert.assertTrue(this.scheduler.getScheduledJobInfo().getJobsByIndex("index-name").isEmpty());
     }
 
-    // @Test
     public void testDeschedule_bulk() {
         Assert.assertTrue(this.scheduler.bulkDeschedule("index-name", null).isEmpty());
 
@@ -136,19 +131,16 @@ public class JobSchedulerTests extends ESTestCase {
         Mockito.verify(scheduledCancellable2).cancel();
     }
 
-    // @Test
     public void testDeschedule_noSuchJob() {
         Assert.assertTrue(this.scheduler.deschedule("index-name", "job-id"));
     }
 
-    // @Test
     public void testReschedule_noEnableTime() {
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
                 null, null, null, false);
         Assert.assertFalse(this.scheduler.reschedule(jobParameter, null, null, dummyVersion, jitterLimit));
     }
 
-    // @Test
     public void testReschedule_jobDescheduled() {
         Schedule schedule = Mockito.mock(Schedule.class);
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
@@ -164,7 +156,6 @@ public class JobSchedulerTests extends ESTestCase {
         Assert.assertFalse(this.scheduler.reschedule(jobParameter, jobSchedulingInfo, null, dummyVersion, jitterLimit));
     }
 
-    // @Test
     public void testReschedule_scheduleJob() {
         Schedule schedule = Mockito.mock(Schedule.class);
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",

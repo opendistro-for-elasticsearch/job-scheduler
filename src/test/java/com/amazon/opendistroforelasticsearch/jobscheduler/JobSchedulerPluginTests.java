@@ -16,11 +16,11 @@
 package com.amazon.opendistroforelasticsearch.jobscheduler;
 
 import org.junit.Assert;
-// import org.junit.Test;
+import org.junit.Test;
 
 public class JobSchedulerPluginTests {
 
-    // @Test
+    @Test
     public void dummyTest() {
         Assert.assertTrue(true);
     }
