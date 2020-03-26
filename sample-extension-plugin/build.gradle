@@ -37,6 +37,6 @@ testingConventions.enabled = false;
 
 testClusters.integTest {
     testDistribution = 'OSS'
-    // install job-scheduler plugin first, then install your plugin
-    // plugin(rootProject.getPath())
+    // need to install job-scheduler first, need to assemble job-scheduler first
+    plugin file("${rootProject.getBuildDir()}/distributions/opendistro-job-scheduler-${project.getVersion()}.zip")
 }
