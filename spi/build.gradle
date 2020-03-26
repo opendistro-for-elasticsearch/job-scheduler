@@ -23,7 +23,7 @@ plugins {
 }
 
 jacoco {
-    toolVersion = '0.8.3'
+    toolVersion = '0.8.5'
     reportsDir = file("$buildDir/JacocoReport")
 }
 
@@ -34,6 +34,7 @@ jacocoTestReport {
         html.destination file("${buildDir}/jacoco/")
     }
 }
+check.dependsOn jacocoTestReport
 
 dependencies {
     compileOnly "org.elasticsearch:elasticsearch:${es_version}"

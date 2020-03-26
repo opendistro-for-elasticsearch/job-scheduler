@@ -15,7 +15,7 @@
 
 buildscript {
     ext {
-        es_version = System.getProperty("es.version", "7.4.2")
+        es_version = System.getProperty("es.version", "7.6.1")
     }
 
     repositories {
@@ -28,7 +28,7 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.ospackage' version "5.3.0"
+    id 'nebula.ospackage' version "8.0.0"
     id 'java-library'
 }
 
@@ -38,6 +38,7 @@ ext {
 }
 
 apply plugin: 'elasticsearch.esplugin'
+apply plugin: 'elasticsearch.testclusters'
 
 ext {
     projectSubstitutions = [:]
@@ -60,13 +61,13 @@ esplugin {
     classname 'com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerPlugin'
 }
 
-integTestRunner {
-    // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
-    systemProperty 'tests.security.manager', 'false'
+testClusters.integTest {
+    testDistribution = 'OSS'
 }
 
-integTestCluster {
-    distribution = "oss-zip"
+integTest.runner {
+    // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
+    systemProperty 'tests.security.manager', 'false'
 }
 
 allprojects {
