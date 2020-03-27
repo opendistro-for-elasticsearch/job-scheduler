@@ -42,14 +42,17 @@ public class ScheduleParser {
                         String cronField = parser.currentName();
                         parser.nextToken();
                         switch (cronField) {
-                            case CronSchedule.EXPRESSION_FIELD: expression = parser.text(); break;
-                            case CronSchedule.TIMEZONE_FIELD: timezone = ZoneId.of(parser.text()); break;
+                            case CronSchedule.EXPRESSION_FIELD: expression = parser.text();
+                                break;
+                            case CronSchedule.TIMEZONE_FIELD: timezone = ZoneId.of(parser.text());
+                                break;
                             default:
                                 throw new IllegalArgumentException(
                                         String.format(Locale.ROOT, "Unknown cron field %s", cronField));
                         }
                     }
-                    XContentParserUtils.ensureExpectedToken(XContentParser.Token.END_OBJECT, parser.currentToken(), parser::getTokenLocation);
+                    XContentParserUtils.ensureExpectedToken(XContentParser.Token.END_OBJECT, parser.currentToken(),
+                            parser::getTokenLocation);
                     parser.nextToken();
                     return new CronSchedule(expression, timezone);
                 case IntervalSchedule.INTERVAL_FIELD:
@@ -60,15 +63,22 @@ public class ScheduleParser {
                         String intervalField = parser.currentName();
                         parser.nextToken();
                         switch (intervalField) {
-                            case IntervalSchedule.START_TIME_FIELD: startTime = Instant.ofEpochMilli(parser.longValue()); break;
-                            case IntervalSchedule.PERIOD_FIELD: period = parser.intValue(); break;
-                            case IntervalSchedule.UNIT_FIELD: unit = ChronoUnit.valueOf(parser.text().toUpperCase(Locale.ROOT)); break;
+                            case IntervalSchedule.START_TIME_FIELD:
+                                startTime = Instant.ofEpochMilli(parser.longValue());
+                                break;
+                            case IntervalSchedule.PERIOD_FIELD:
+                                period = parser.intValue();
+                                break;
+                            case IntervalSchedule.UNIT_FIELD:
+                                unit = ChronoUnit.valueOf(parser.text().toUpperCase(Locale.ROOT));
+                                break;
                             default:
                                 throw new IllegalArgumentException(
                                         String.format(Locale.ROOT, "Unknown interval field %s", intervalField));
                         }
                     }
-                    XContentParserUtils.ensureExpectedToken(XContentParser.Token.END_OBJECT, parser.currentToken(), parser::getTokenLocation);
+                    XContentParserUtils.ensureExpectedToken(XContentParser.Token.END_OBJECT, parser.currentToken(),
+                            parser::getTokenLocation);
                     parser.nextToken();
                     return new IntervalSchedule(startTime, period, unit);
                 default:

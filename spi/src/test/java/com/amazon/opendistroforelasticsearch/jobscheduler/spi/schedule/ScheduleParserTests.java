@@ -15,12 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule;
 
-import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.ESTestCase;
@@ -32,9 +27,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
-public class ScheduleParserTest {
+public class ScheduleParserTests extends ESTestCase {
 
-    @Test
     public void testParseCronSchedule() throws IOException {
         String cronScheduleJsonStr = "{\"cron\":{\"expression\":\"* * * * *\",\"timezone\":\"PST8PDT\"}}";
 
@@ -47,7 +41,6 @@ public class ScheduleParserTest {
         Assert.assertEquals(ZoneId.of("PST8PDT"), ((CronSchedule)schedule).getTimeZone());
     }
 
-    @Test
     public void testParseIntervalSchedule() throws IOException {
         String intervalScheduleJsonStr = "{\"interval\":{\"start_time\":1546329600000,\"period\":1,\"unit\":\"Minutes\"}}";
 
@@ -86,10 +79,5 @@ public class ScheduleParserTest {
         XContentParser parser = this.createParser(XContentType.JSON.xContent(), new BytesArray(intervalScheduleJsonStr));
         parser.nextToken();
         ScheduleParser.parse(parser);
-    }
-
-    private XContentParser createParser(XContent xContent, BytesReference data) throws IOException {
-        return xContent.createParser(new NamedXContentRegistry(ClusterModule.getNamedXWriteables()),
-                LoggingDeprecationHandler.INSTANCE, data.streamInput());
     }
 }
