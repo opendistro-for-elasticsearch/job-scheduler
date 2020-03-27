@@ -36,8 +36,11 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.LockModel;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParameter;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.Schedule;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Before;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -52,7 +55,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes =1)
 public class LockServiceIT extends ESIntegTestCase {
 
     static final String JOB_ID = "test_job_id";
@@ -89,10 +91,22 @@ public class LockServiceIT extends ESIntegTestCase {
         }
     };
 
+    private ClusterService clusterService;
+
+    @Before
+    public void setup() {
+        // the test cluster is an external cluster instead of internal cluster in new test framework,
+        // thus the ESIntegTestCase.clusterService() will throw exception.
+        this.clusterService = Mockito.mock(ClusterService.class, Mockito.RETURNS_DEEP_STUBS);
+        Mockito.when(this.clusterService.state().routingTable().hasIndex(".opendistro-job-scheduler-lock"))
+                .thenReturn(false)
+                .thenReturn(true);
+    }
+
     public void testSanity() throws Exception {
         String uniqSuffix = "_sanity";
         CountDownLatch latch = new CountDownLatch(1);
-        LockService lockService = new LockService(client(), clusterService());
+        LockService lockService = new LockService(client(), this.clusterService);
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME + uniqSuffix, JOB_ID + uniqSuffix);
         Instant testTime = Instant.now();
@@ -102,7 +116,8 @@ public class LockServiceIT extends ESIntegTestCase {
                     assertNotNull("Expected to successfully grab lock.", lock);
                     assertEquals("job_id does not match.", JOB_ID + uniqSuffix, lock.getJobId());
                     assertEquals("job_index_name does not match.", JOB_INDEX_NAME + uniqSuffix, lock.getJobIndexName());
-                    assertEquals("lock_id does not match.", LockModel.generateLockId(JOB_INDEX_NAME + uniqSuffix, JOB_ID + uniqSuffix), lock.getLockId());
+                    assertEquals("lock_id does not match.", LockModel.generateLockId(JOB_INDEX_NAME + uniqSuffix,
+                            JOB_ID + uniqSuffix), lock.getLockId());
                     assertEquals("lock_duration_seconds does not match.", LOCK_DURATION_SECONDS, lock.getLockDurationSeconds());
                     assertEquals("lock_time does not match.", testTime.getEpochSecond(), lock.getLockTime().getEpochSecond());
                     assertFalse("Lock should not be released.", lock.isReleased());
@@ -129,7 +144,7 @@ public class LockServiceIT extends ESIntegTestCase {
     public void testSecondAcquireLockFail() throws Exception {
         String uniqSuffix = "_second_acquire";
         CountDownLatch latch = new CountDownLatch(1);
-        LockService lockService = new LockService(client(), clusterService());
+        LockService lockService = new LockService(client(), this.clusterService);
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME + uniqSuffix, JOB_ID + uniqSuffix);
 
@@ -164,7 +179,7 @@ public class LockServiceIT extends ESIntegTestCase {
     public void testLockReleasedAndAcquired() throws Exception {
         String uniqSuffix = "_lock_release+acquire";
         CountDownLatch latch = new CountDownLatch(1);
-        LockService lockService = new LockService(client(), clusterService());
+        LockService lockService = new LockService(client(), this.clusterService);
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME + uniqSuffix, JOB_ID + uniqSuffix);
 
@@ -205,7 +220,7 @@ public class LockServiceIT extends ESIntegTestCase {
     public void testLockExpired() throws Exception {
         String uniqSuffix = "_lock_expire";
         CountDownLatch latch = new CountDownLatch(1);
-        LockService lockService = new LockService(client(), clusterService());
+        LockService lockService = new LockService(client(), this.clusterService);
         // Set lock time in the past.
         lockService.setTime(Instant.now().minus(Duration.ofSeconds(LOCK_DURATION_SECONDS + LOCK_DURATION_SECONDS)));
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
@@ -250,7 +265,7 @@ public class LockServiceIT extends ESIntegTestCase {
 
     public void testDeleteLockWithOutIndexCreation() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
-        LockService lockService = new LockService(client(), clusterService());
+        LockService lockService = new LockService(client(), this.clusterService);
         lockService.deleteLock("NonExistingLockId", ActionListener.wrap(
                 deleted -> {
                     assertTrue("Failed to delete lock.", deleted);
@@ -263,7 +278,7 @@ public class LockServiceIT extends ESIntegTestCase {
 
     public void testDeleteNonExistingLock() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
-        LockService lockService = new LockService(client(), clusterService());
+        LockService lockService = new LockService(client(), this.clusterService);
         lockService.createLockIndex(ActionListener.wrap(
                 created -> {
                     if (created) {
@@ -284,12 +299,12 @@ public class LockServiceIT extends ESIntegTestCase {
         latch.await(5L, TimeUnit.SECONDS);
     }
 
-    private volatile static AtomicInteger multiThreadCreateLockCounter = new AtomicInteger(0);
+    private static volatile AtomicInteger multiThreadCreateLockCounter = new AtomicInteger(0);
 
     public void testMultiThreadCreateLock() throws Exception {
         String uniqSuffix = "_multi_thread_create";
         CountDownLatch latch = new CountDownLatch(1);
-        final LockService lockService = new LockService(client(), clusterService());
+        final LockService lockService = new LockService(client(), this.clusterService);
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME + uniqSuffix, JOB_ID + uniqSuffix);
 
@@ -358,12 +373,12 @@ public class LockServiceIT extends ESIntegTestCase {
         assertTrue("Test timed out - possibly leaked into other tests", latch.await(30L, TimeUnit.SECONDS));
     }
 
-    private volatile static AtomicInteger multiThreadAcquireLockCounter = new AtomicInteger(0);
+    private static volatile AtomicInteger multiThreadAcquireLockCounter = new AtomicInteger(0);
 
     public void testMultiThreadAcquireLock() throws Exception {
         String uniqSuffix = "_multi_thread_acquire";
         CountDownLatch latch = new CountDownLatch(1);
-        final LockService lockService = new LockService(client(), clusterService());
+        final LockService lockService = new LockService(client(), this.clusterService);
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
             lockService, JOB_INDEX_NAME + uniqSuffix, JOB_ID + uniqSuffix);
 

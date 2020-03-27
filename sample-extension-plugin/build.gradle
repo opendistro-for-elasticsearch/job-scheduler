@@ -35,8 +35,12 @@ dependencies {
 
 testingConventions.enabled = false;
 
+integTest.dependsOn(rootProject.assemble)
+integTestRunner {
+    systemProperty 'tests.security.manager', 'false'
+}
 testClusters.integTest {
     testDistribution = 'OSS'
     // need to install job-scheduler first, need to assemble job-scheduler first
-    plugin file("${rootProject.getBuildDir()}/distributions/opendistro-job-scheduler-${project.getVersion()}.zip")
+    plugin file("${rootProject.getBuildDir()}/distributions/${rootProject.getName()}-${project.getVersion()}.zip")
 }
