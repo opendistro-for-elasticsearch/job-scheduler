@@ -15,6 +15,8 @@
 
 package com.amazon.opendistroforelasticsearch.jobscheduler.spi;
 
+import java.util.Locale;
+
 /**
  * Structure to represent scheduled job document version. JobScheduler use this to determine this job
  */
@@ -45,7 +47,7 @@ public class JobDocVersion implements Comparable<JobDocVersion> {
      * Compare two doc versions. Refer to https://github.com/elastic/elasticsearch/issues/10708
      *
      * @param v the doc version to compare.
-     * @return -1 if this < v, 0 if this == v, otherwise 1;
+     * @return -1 if this &lt; v, 0 if this == v, otherwise 1;
      */
     @Override
     public int compareTo(JobDocVersion v) {
@@ -69,6 +71,7 @@ public class JobDocVersion implements Comparable<JobDocVersion> {
 
     @Override
     public String toString() {
-        return String.format("{_version: %s, _primary_term: %s, _seq_no: %s}", this.version, this.primaryTerm, this.seqNo);
+        return String.format(Locale.getDefault(), "{_version: %s, _primary_term: %s, _seq_no: %s}", this.version,
+                this.primaryTerm, this.seqNo);
     }
 }

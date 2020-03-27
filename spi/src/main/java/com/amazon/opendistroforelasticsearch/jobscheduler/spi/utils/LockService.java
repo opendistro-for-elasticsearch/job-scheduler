@@ -97,7 +97,8 @@ public final class LockService {
             client.admin().indices().create(request, ActionListener.wrap(
                response -> listener.onResponse(response.isAcknowledged()),
                exception -> {
-                   if (exception instanceof ResourceAlreadyExistsException || exception.getCause() instanceof ResourceAlreadyExistsException) {
+                   if (exception instanceof ResourceAlreadyExistsException
+                           || exception.getCause() instanceof ResourceAlreadyExistsException) {
                        listener.onResponse(true);
                    } else {
                        listener.onFailure(exception);
@@ -135,7 +136,8 @@ public final class LockService {
                                                 if (isLockReleasedOrExpired(existingLock)) {
                                                     // Lock is expired. Attempt to acquire lock.
                                                     logger.debug("lock is released or expired: " + existingLock);
-                                                    LockModel updateLock = new LockModel(existingLock, getNow(), lockDurationSecond, false);
+                                                    LockModel updateLock = new LockModel(existingLock, getNow(),
+                                                            lockDurationSecond, false);
                                                     updateLock(updateLock, listener);
                                                 } else {
                                                     logger.debug("Lock is NOT released or expired. " + existingLock);
@@ -144,7 +146,8 @@ public final class LockService {
                                                 }
                                             } else {
                                                 // There is no lock object and it is first time. Create new lock.
-                                                LockModel tempLock = new LockModel(jobIndexName, jobId, getNow(), lockDurationSecond, false);
+                                                LockModel tempLock = new LockModel(jobIndexName, jobId, getNow(),
+                                                        lockDurationSecond, false);
                                                 logger.debug("Lock does not exist. Creating new lock" + tempLock);
                                                 createLock(tempLock, listener);
                                             }
@@ -179,13 +182,15 @@ public final class LockService {
                 .fetchSource(true);
 
             client.update(updateRequest, ActionListener.wrap(
-                    response -> listener.onResponse(new LockModel(updateLock, response.getSeqNo(), response.getPrimaryTerm())),
+                    response -> listener.onResponse(new LockModel(updateLock, response.getSeqNo(),
+                            response.getPrimaryTerm())),
                     exception -> {
                         if (exception instanceof VersionConflictEngineException) {
                             logger.debug("could not acquire lock {}", exception.getMessage());
                         }
                         if (exception instanceof DocumentMissingException) {
-                            logger.debug("Document is deleted. This happens if the job is already removed and this is the last run." +
+                            logger.debug("Document is deleted. This happens if the job is already removed and" +
+                                    " this is the last run." +
                                     "{}", exception.getMessage());
                         }
                         if (exception instanceof IOException) {
@@ -208,7 +213,8 @@ public final class LockService {
                 .setIfPrimaryTerm(SequenceNumbers.UNASSIGNED_PRIMARY_TERM)
                 .create(true);
             client.index(request, ActionListener.wrap(
-                    response -> listener.onResponse(new LockModel(tempLock, response.getSeqNo(), response.getPrimaryTerm())),
+                    response -> listener.onResponse(new LockModel(tempLock, response.getSeqNo(),
+                            response.getPrimaryTerm())),
                     exception -> {
                        if (exception instanceof VersionConflictEngineException) {
                            logger.debug("Lock is already created. {}", exception.getMessage());
@@ -234,7 +240,8 @@ public final class LockService {
                     } else {
                         try {
                             XContentParser parser = XContentType.JSON.xContent()
-                                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getSourceAsString());
+                                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE,
+                                            response.getSourceAsString());
                             parser.nextToken();
                             listener.onResponse(LockModel.parse(parser, response.getSeqNo(), response.getPrimaryTerm()));
                         } catch (IOException e) {
@@ -252,7 +259,8 @@ public final class LockService {
 
     /**
      * Attempt to release the lock.
-     * Most failure cases are due to {@code lock.seqNo} and {@code lock.primaryTerm} not matching with the existing document.
+     * Most failure cases are due to {@code lock.seqNo} and {@code lock.primaryTerm} not matching with the existing
+     * document.
      *
      * @param lock a {@code LockModel} to be released.
      * @param listener a {@code ActionListener} that has onResponse and onFailure that is used to return whether
@@ -288,7 +296,8 @@ public final class LockService {
                             response.getResult() == DocWriteResponse.Result.NOT_FOUND);
                 },
                 exception -> {
-                    if (exception instanceof IndexNotFoundException || exception.getCause() instanceof IndexNotFoundException) {
+                    if (exception instanceof IndexNotFoundException
+                            || exception.getCause() instanceof IndexNotFoundException) {
                         logger.debug("Index is not found to delete lock. {}", exception.getMessage());
                         listener.onResponse(true);
                     } else {

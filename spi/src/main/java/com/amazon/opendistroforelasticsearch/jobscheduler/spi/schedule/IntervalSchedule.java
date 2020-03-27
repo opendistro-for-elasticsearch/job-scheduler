@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule;
 
 import com.cronutils.utils.VisibleForTesting;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -33,7 +34,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * {@link Schedule} defined by interval (interval value & interval unit). Currently the finest unit supported is minute.
+ * {@link Schedule} defined by interval (interval value &amp; interval unit). Currently the finest unit supported is minute.
  */
 public class IntervalSchedule implements Schedule {
 
@@ -110,6 +111,7 @@ public class IntervalSchedule implements Schedule {
         return new Tuple<>(realStartTime, newEndTime);
     }
 
+    @SuppressForbidden(reason = "Ignore forbidden api Math.abs()")
     @Override
     public Boolean runningOnTime(Instant lastExecutionTime) {
         if (lastExecutionTime == null) {

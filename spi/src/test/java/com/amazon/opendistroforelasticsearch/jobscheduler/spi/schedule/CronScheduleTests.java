@@ -19,9 +19,9 @@ import com.cronutils.model.time.ExecutionTime;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -33,7 +33,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
-public class CronScheduleTest {
+public class CronScheduleTests extends ESTestCase {
 
     private CronSchedule cronSchedule;
 
@@ -42,7 +42,6 @@ public class CronScheduleTest {
         this.cronSchedule = new CronSchedule("* * * * *", ZoneId.systemDefault());
     }
 
-    @Test
     public void testNextTimeToExecute() {
         Instant now = Instant.now();
         Clock testClock = Clock.fixed(now, ZoneId.systemDefault());
@@ -56,7 +55,6 @@ public class CronScheduleTest {
         Assert.assertEquals(expected, duration);
     }
 
-    @Test
     public void testGetPeriodStartingAt() {
         Instant now = Instant.now();
         Instant currentMinute = Instant.ofEpochSecond(now.getEpochSecond() / 60 * 60);
@@ -68,7 +66,6 @@ public class CronScheduleTest {
         Assert.assertEquals(nextMinute, period.v2());
     }
 
-    @Test
     public void testGetPeriodStartingAt_nullStartTime() {
         Instant now = Instant.now();
 
@@ -84,7 +81,6 @@ public class CronScheduleTest {
         Assert.assertEquals(nextMinute, period.v2());
     }
 
-    @Test
     public void testGetPeriodStartingAt_noLastExecution() {
         ExecutionTime mockExecution = Mockito.mock(ExecutionTime.class);
         this.cronSchedule.setExecutionTime(mockExecution);
@@ -101,7 +97,6 @@ public class CronScheduleTest {
         Mockito.verify(mockExecution).lastExecution(ZonedDateTime.ofInstant(now, ZoneId.systemDefault()));
     }
 
-    @Test
     public void testRunningOnTime() {
         Instant now = Instant.now();
 
@@ -123,12 +118,10 @@ public class CronScheduleTest {
         Assert.assertFalse(this.cronSchedule.runningOnTime(lastExecutionTime));
     }
 
-    @Test
     public void testRunningOnTime_nullParam() {
         Assert.assertTrue(this.cronSchedule.runningOnTime(null));
     }
 
-    @Test
     public void testRunningOnTime_noLastExecution() {
         Instant now = Instant.now();
         Clock testClock = Clock.fixed(now, ZoneId.systemDefault());
@@ -142,7 +135,6 @@ public class CronScheduleTest {
         Assert.assertFalse(this.cronSchedule.runningOnTime(now));
     }
 
-    @Test
     public void testToXContent() throws IOException {
         CronSchedule schedule = new CronSchedule("* * * * *", ZoneId.of("PST8PDT"));
         String expectedJsonStr = "{\"cron\":{\"expression\":\"* * * * *\",\"timezone\":\"PST8PDT\"}}";
@@ -150,7 +142,6 @@ public class CronScheduleTest {
                 XContentHelper.toXContent(schedule, XContentType.JSON, false).utf8ToString());
     }
 
-    @Test
     public void testCronScheduleEqualsAndHashCode() {
         CronSchedule cronScheduleOne = new CronSchedule("* * * * *", ZoneId.of("PST8PDT"));
         CronSchedule cronScheduleTwo = new CronSchedule("* * * * *", ZoneId.of("PST8PDT"));

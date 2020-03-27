@@ -18,6 +18,7 @@ package com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,7 +32,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
-public class IntervalScheduleTest {
+public class IntervalScheduleTests extends ESTestCase {
 
     private IntervalSchedule intervalSchedule;
     private Instant startTime;
@@ -48,7 +49,6 @@ public class IntervalScheduleTest {
         new IntervalSchedule(startTime, 1, ChronoUnit.MILLIS);
     }
 
-    @Test
     public void testNextTimeToExecution() {
         Instant now = Instant.now();
         Clock testClock = Clock.fixed(now, ZoneId.systemDefault());
@@ -60,7 +60,6 @@ public class IntervalScheduleTest {
         Assert.assertEquals(expected, this.intervalSchedule.nextTimeToExecute());
     }
 
-    @Test
     public void testGetPeriodStartingAt() {
         Instant now = Instant.now();
         Instant oneMinLater = now.plus(1L, ChronoUnit.MINUTES);
@@ -71,7 +70,6 @@ public class IntervalScheduleTest {
         Assert.assertEquals(oneMinLater, period.v2());
     }
 
-    @Test
     public void testGetPeriodStartingAt_nullParam() {
         Instant now = Instant.now();
         Clock testClock = Clock.fixed(now, ZoneId.systemDefault());
@@ -84,7 +82,6 @@ public class IntervalScheduleTest {
         Assert.assertEquals(oneMinLater, period.v2());
     }
 
-    @Test
     public void testRunningOnTime() {
         Instant now = Instant.now();
         if(now.toEpochMilli() % (60 * 1000) == 0) {
@@ -125,12 +122,10 @@ public class IntervalScheduleTest {
         Assert.assertFalse(this.intervalSchedule.runningOnTime(lastExecutionTime));
     }
 
-    @Test
     public void testRunningOnTime_nullLastExetime() {
         Assert.assertTrue(this.intervalSchedule.runningOnTime(null));
     }
 
-    @Test
     public void testToXContent() throws IOException {
         long epochMillis = this.startTime.toEpochMilli();
         String xContentJsonStr = "{\"interval\":{\"start_time\":" + epochMillis + ",\"period\":1,\"unit\":\"Minutes\"}}";
@@ -140,7 +135,6 @@ public class IntervalScheduleTest {
                 .utf8ToString());
     }
 
-    @Test
     public void testIntervalScheduleEqualsAndHashCode() {
         Long epochMilli = Instant.now().toEpochMilli();
         IntervalSchedule intervalScheduleOne = new IntervalSchedule(Instant.ofEpochMilli(epochMilli), 5, ChronoUnit.MINUTES);
