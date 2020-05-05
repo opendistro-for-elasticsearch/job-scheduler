@@ -53,6 +53,51 @@ jobs:
           aws s3 cp job-scheduler-artifacts/*.rpm $s3_path/rpms/opendistro-job-scheduler/
           aws cloudfront create-invalidation --distribution-id ${{ secrets.DISTRIBUTION_ID }} --paths '/downloads/*'
 
+      # Creating release draft
+      - name: Create Github Draft Release
+        id: create_release
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ env.TAG_VERSION }}
+          draft: true
+          prerelease: false
+
+      # Upload the release with .zip as asset
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: job-scheduler-artifacts.zip
+          asset_path: job-scheduler-artifacts_zip
+          asset_content_type: application/zip
+
+      # Upload the release with .rpm as asset
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: job-scheduler-artifacts.rpm
+          asset_path: job-scheduler-artifacts_rpm
+          asset_content_type: application/zip
+
+      # Upload the release with .deb as asset
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: job-scheduler-artifacts.deb
+          asset_path: job-scheduler-artifacts_deb
+          asset_content_type: application/zip
+
       - name: Upload Workflow Artifacts
         uses: actions/upload-artifact@v1
         with:
