@@ -32,8 +32,11 @@ jobs:
         run: |
           mkdir -p job-scheduler-artifacts
           cp ./build/distributions/*.zip job-scheduler-artifacts
+          cp ./build/distributions/*.zip job-scheduler-artifacts_zip
           cp ./build/distributions/*.deb job-scheduler-artifacts
+          cp ./build/distributions/*.deb job-scheduler-artifacts_deb
           cp ./build/distributions/*.rpm job-scheduler-artifacts
+          cp ./build/distributions/*.rpm job-scheduler-artifacts_rpm
           echo ::set-env name=TAG_VERSION::${GITHUB_REF/refs\/tags\//}
 
       # AWS authentication
