@@ -1,9 +1,11 @@
 name: Upload SPI Jar to Maven
 
-on:
-  push:
-    tags: 
-      - v*
+on: 
+  repository_dispatch:
+    types: [java]
+  # push:
+  #   tags: 
+  #     - v*
 jobs:
   upload-job-scheduler-jar:
     runs-on: [ubuntu-16.04]
@@ -30,15 +32,16 @@ jobs:
         run: |
           cd ..
           export JAVA13_HOME=$JAVA_HOME
-          aws s3 cp s3://opendistro-docs/github-actions/pgp-public-key .
-          aws s3 cp s3://opendistro-docs/github-actions/pgp-private-key .
+          echo "java home is $JAVA_HOME"
+        #  aws s3 cp s3://opendistro-docs/github-actions/pgp-public-key .
+        #  aws s3 cp s3://opendistro-docs/github-actions/pgp-private-key .
           
-          gpg --import pgp-public-key
-          gpg --allow-secret-key-import --import pgp-private-key
+        #  gpg --import pgp-public-key
+        #  gpg --allow-secret-key-import --import pgp-private-key
 
-          mkdir /home/runner/.gradle
-          aws s3 cp s3://opendistro-docs/github-actions/gradle.properties /home/runner/.gradle/
+        #  mkdir /home/runner/.gradle
+        #  aws s3 cp s3://opendistro-docs/github-actions/gradle.properties /home/runner/.gradle/
           
-          cd job-scheduler/spi
+        #  cd job-scheduler/spi
           
-          ../gradlew publishShadowPublicationToSonatype-stagingRepository -Dcompiler.java=13 -Dbuild.snapshot=false -Djavax.net.ssl.trustStore=/opt/hostedtoolcache/jdk/13.0.2/x64/lib/security/cacerts
+        #  ../gradlew publishShadowPublicationToSonatype-stagingRepository -Dcompiler.java=13 -Dbuild.snapshot=false -Djavax.net.ssl.trustStore=/opt/hostedtoolcache/jdk/13.0.2/x64/lib/security/cacerts
