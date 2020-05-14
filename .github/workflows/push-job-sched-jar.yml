@@ -1,9 +1,8 @@
 name: Upload SPI Jar to Maven
 
 on:
-  push:
-    tags: 
-      - v*
+  repository_dispatch:
+    types: [maven]
 jobs:
   upload-job-scheduler-jar:
     runs-on: [ubuntu-16.04]
@@ -41,4 +40,4 @@ jobs:
           
           cd job-scheduler/spi
           
-          ../gradlew publishShadowPublicationToSonatype-stagingRepository -Dcompiler.java=13 -Dbuild.snapshot=false -Djavax.net.ssl.trustStore=/opt/hostedtoolcache/jdk/13.0.2/x64/lib/security/cacerts
+          ../gradlew publishShadowPublicationToSonatype-stagingRepository -Dcompiler.java=13 -Dbuild.snapshot=false -Djavax.net.ssl.trustStore=/opt/hostedtoolcache/jdk/13.0.3/x64/lib/security/cacerts
