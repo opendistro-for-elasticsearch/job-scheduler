@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -52,9 +53,6 @@ import java.util.List;
 public class SampleExtensionRestHandler extends BaseRestHandler {
     public static final String WATCH_INDEX_URI = "/_opendistro/scheduler_sample/watch";
 
-    public SampleExtensionRestHandler(RestController restController) {
-    }
-
     @Override
     public String getName() {
         return "Sample JobScheduler extension handler";
@@ -62,10 +60,10 @@ public class SampleExtensionRestHandler extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return Arrays.asList(
+        return Collections.unmodifiableList(Arrays.asList(
                 new Route(RestRequest.Method.POST, WATCH_INDEX_URI),
                 new Route(RestRequest.Method.DELETE, WATCH_INDEX_URI)
-        );
+        ));
     }
 
     @Override
