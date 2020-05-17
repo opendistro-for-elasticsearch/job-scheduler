@@ -146,6 +146,6 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
     public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
                                       IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
                                       IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
-        return Collections.singletonList(new SampleExtensionRestHandler(restController));
+        return Collections.singletonList(new SampleExtensionRestHandler());
     }
 }
