@@ -13,7 +13,7 @@ monitoring the shard allocation by calling Elasticsearch API and post the output
 The JobScheduler plugin uses the [Gradle](https://docs.gradle.org/4.10.2/userguide/userguide.html)
 build system.
 1. Checkout this package from version control.
-1. To build from command line set `JAVA_HOME` to point to a JDK >=13
+1. To build from command line set `JAVA_HOME` to point to a JDK >=14
 1. Run `./gradlew build`
 
 Then you will find the built artifact located at `build/distributions` directory
