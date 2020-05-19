@@ -54,7 +54,9 @@ afterEvaluate {
     testClusters.integTest.nodes.each { node ->
         def plugins = node.plugins
         def firstPlugin = plugins.get(0)
-        plugins.remove(0)
-        plugins.add(firstPlugin)
+        if (firstPlugin.provider == project.bundlePlugin.archiveFile) {
+            plugins.remove(0)
+            plugins.add(firstPlugin)
+        }
     }
 }
