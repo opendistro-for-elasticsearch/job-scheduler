@@ -26,6 +26,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.sweeper.JobSweeper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -76,7 +77,8 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
     public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
                            ResourceWatcherService resourceWatcherService, ScriptService scriptService,
                            NamedXContentRegistry xContentRegistry, Environment environment,
-                           NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
+                           NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
+                           IndexNameExpressionResolver indexNameExpressionResolver) {
         this.lockService = new LockService(client, clusterService);
         this.scheduler = new JobScheduler(threadPool, this.lockService);
         this.sweeper = initSweeper(environment.settings(), client, clusterService, threadPool, xContentRegistry,

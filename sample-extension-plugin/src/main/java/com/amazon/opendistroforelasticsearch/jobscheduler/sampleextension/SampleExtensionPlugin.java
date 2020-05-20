@@ -66,7 +66,8 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
     public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
                                                ResourceWatcherService resourceWatcherService, ScriptService scriptService,
                                                NamedXContentRegistry xContentRegistry, Environment environment,
-                                               NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
+                                               NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
+                                               IndexNameExpressionResolver indexNameExpressionResolver) {
         SampleJobRunner jobRunner = SampleJobRunner.getJobRunnerInstance();
         jobRunner.setClusterService(clusterService);
         jobRunner.setThreadPool(threadPool);
@@ -145,6 +146,6 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
     public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
                                       IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
                                       IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
-        return Collections.singletonList(new SampleExtensionRestHandler(restController));
+        return Collections.singletonList(new SampleExtensionRestHandler());
     }
 }

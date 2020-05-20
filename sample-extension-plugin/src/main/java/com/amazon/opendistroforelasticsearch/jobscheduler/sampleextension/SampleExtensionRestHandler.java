@@ -25,7 +25,6 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestResponse;
 import org.elasticsearch.rest.RestStatus;
@@ -33,6 +32,9 @@ import org.elasticsearch.rest.RestStatus;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * A sample rest handler that supports schedule and deschedule job operation
@@ -50,14 +52,17 @@ import java.time.temporal.ChronoUnit;
 public class SampleExtensionRestHandler extends BaseRestHandler {
     public static final String WATCH_INDEX_URI = "/_opendistro/scheduler_sample/watch";
 
-    public SampleExtensionRestHandler(RestController restController) {
-        restController.registerHandler(RestRequest.Method.POST, WATCH_INDEX_URI, this);
-        restController.registerHandler(RestRequest.Method.DELETE, WATCH_INDEX_URI, this);
-    }
-
     @Override
     public String getName() {
         return "Sample JobScheduler extension handler";
+    }
+
+    @Override
+    public List<Route> routes() {
+        return Collections.unmodifiableList(Arrays.asList(
+                new Route(RestRequest.Method.POST, WATCH_INDEX_URI),
+                new Route(RestRequest.Method.DELETE, WATCH_INDEX_URI)
+        ));
     }
 
     @Override
