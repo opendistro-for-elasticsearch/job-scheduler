@@ -15,7 +15,7 @@
 
 buildscript {
     ext {
-        es_version = System.getProperty("es.version", "7.6.1")
+        es_version = System.getProperty("es.version", "7.7.0")
     }
 
     repositories {
@@ -28,7 +28,7 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.ospackage' version "8.2.0"
+    id 'nebula.ospackage' version "8.3.0"
     id 'java-library'
 }
 
