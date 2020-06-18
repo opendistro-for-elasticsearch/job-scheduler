@@ -12,7 +12,7 @@
  *   express or implied. See the License for the specific language governing
  *   permissions and limitations under the License.
  */
-// import com.github.jengelman.gradle.plugins.shadow.ShadowBasePlugin
+import com.github.jengelman.gradle.plugins.shadow.ShadowBasePlugin
 
 plugins {
     id 'com.github.johnrengelman.shadow'
@@ -37,6 +37,8 @@ forbiddenApisTest.ignoreFailures = true
 dependencyLicenses.enabled = false
 testingConventions.enabled = false
 thirdPartyAudit.enabled = false
+// TODO: enable
+validateNebulaPom.enabled = false
 
 jacoco {
     toolVersion = '0.8.5'
@@ -149,6 +151,8 @@ publishing {
               developers {
                 developer {
                   id = "amazonwebservices"
+                  name = "Amazon Web Services"
+                  url = "https://aws.amazon.com"
                   organization = "Amazon Web Services"
                   organizationUrl = "https://aws.amazon.com"
                 }
@@ -178,3 +182,5 @@ signing {
     sign publishing.publications.shadow
 }
 
+// TODO: enable
+validateNebulaPom.enabled = false

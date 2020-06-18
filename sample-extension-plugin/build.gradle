@@ -34,6 +34,8 @@ dependencies {
 }
 
 testingConventions.enabled = false;
+// TODO: enable
+validateNebulaPom.enabled = false
 
 integTest.dependsOn(rootProject.assemble)
 integTestRunner {

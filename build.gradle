@@ -50,6 +50,7 @@ ext {
 licenseHeaders.enabled = true
 testingConventions.enabled = false
 forbiddenApis.ignoreFailures = false
+validateNebulaPom.enabled = false
 
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
