@@ -50,11 +50,12 @@ ext {
 licenseHeaders.enabled = true
 testingConventions.enabled = false
 forbiddenApis.ignoreFailures = false
-validateNebulaPom.enabled = false
 
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
 forbiddenApisTest.ignoreFailures = true
+// no need to validate pom, as this project is not uploaded to sonatype
+validateNebulaPom.enabled = false
 
 esplugin {
     name 'opendistro-job-scheduler'
