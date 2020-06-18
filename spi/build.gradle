@@ -12,15 +12,16 @@
  *   express or implied. See the License for the specific language governing
  *   permissions and limitations under the License.
  */
-import com.github.jengelman.gradle.plugins.shadow.ShadowBasePlugin
+// import com.github.jengelman.gradle.plugins.shadow.ShadowBasePlugin
 
 plugins {
     id 'com.github.johnrengelman.shadow'
-    id 'java-library'
+    // id 'java-library'
     id 'jacoco'
     id 'maven'
-    id 'maven-publish'
+    // id 'maven-publish'
     id 'signing'
+    id "com.dorongold.task-tree" version "1.5"
 }
 apply plugin: 'elasticsearch.build'
 apply plugin: 'elasticsearch.rest-test'
@@ -85,10 +86,47 @@ testClusters.integTest {
     testDistribution = 'OSS'
 }
 
+// generatePomFileForShadowPublication.enabled = false
+// project.gradle.startParameter.excludedTaskNames.add('generatePomFileForNebulaPublication')
+/*
+* We already configure publication and we don't need or want this one that
+* comes from the java-gradle-plugin.
+*/
+// afterEvaluate {
+//     generatePomFileForPluginMavenPublication.enabled = false
+// }
+
+generatePom {
+    println project.pluginManager.hasPlugin("elasticsearch.publish")
+    project.pluginManager.withPlugin('com.github.johnrengelman.shadow') {
+        MavenPublication publication = publishing.publications.maybeCreate('shadow', MavenPublication)
+
+        // manually delete POM fields add by elasticsearch.publish plugin
+        publication.pom.withXml { xml ->
+            // reference: https://github.com/johnrengelman/shadow/blob/d4e649d7dd014bfdd9575bfec92d7e74c3cf1aca/src/main/groovy/com/github/jengelman/gradle/plugins/shadow/ShadowExtension.groovy#L25
+            def dependenciesNode = xml.asNode().appendNode('dependencies')
+
+            Node root = xml.asNode()
+            println "print nodes"
+
+            6.times {
+                root.remove(root.children()[10])
+            }
+
+            root.children().eachWithIndex{ entry, int i ->
+                println "child ${i}"
+                println root.children()[i]
+            }
+
+            println "after remove"
+        }
+    }
+}
+
 publishing {
     publications {
         shadow(MavenPublication) { publication ->
-            project.shadow.component(publication)
+            // project.shadow.component(publication)
             artifact sourcesJar
             artifact javadocJar
 
