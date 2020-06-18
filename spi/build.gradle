@@ -16,10 +16,8 @@ import com.github.jengelman.gradle.plugins.shadow.ShadowBasePlugin
 
 plugins {
     id 'com.github.johnrengelman.shadow'
-    // id 'java-library'
     id 'jacoco'
     id 'maven'
-    // id 'maven-publish'
     id 'signing'
     id "com.dorongold.task-tree" version "1.5"
 }
@@ -37,8 +35,6 @@ forbiddenApisTest.ignoreFailures = true
 dependencyLicenses.enabled = false
 testingConventions.enabled = false
 thirdPartyAudit.enabled = false
-// TODO: enable
-validateNebulaPom.enabled = false
 
 jacoco {
     toolVersion = '0.8.5'
@@ -88,50 +84,9 @@ testClusters.integTest {
     testDistribution = 'OSS'
 }
 
-// generatePomFileForShadowPublication.enabled = false
-// project.gradle.startParameter.excludedTaskNames.add('generatePomFileForNebulaPublication')
-/*
-* We already configure publication and we don't need or want this one that
-* comes from the java-gradle-plugin.
-*/
-// afterEvaluate {
-//     generatePomFileForPluginMavenPublication.enabled = false
-// }
-
-generatePom {
-    println project.pluginManager.hasPlugin("elasticsearch.publish")
-    project.pluginManager.withPlugin('com.github.johnrengelman.shadow') {
-        MavenPublication publication = publishing.publications.maybeCreate('shadow', MavenPublication)
-
-        // manually delete POM fields add by elasticsearch.publish plugin
-        publication.pom.withXml { xml ->
-            // reference: https://github.com/johnrengelman/shadow/blob/d4e649d7dd014bfdd9575bfec92d7e74c3cf1aca/src/main/groovy/com/github/jengelman/gradle/plugins/shadow/ShadowExtension.groovy#L25
-            def dependenciesNode = xml.asNode().appendNode('dependencies')
-
-            Node root = xml.asNode()
-            println "print nodes"
-
-            6.times {
-                root.remove(root.children()[10])
-            }
-
-            root.children().eachWithIndex{ entry, int i ->
-                println "child ${i}"
-                println root.children()[i]
-            }
-
-            println "after remove"
-        }
-    }
-}
-
 publishing {
     publications {
-        shadow(MavenPublication) { publication ->
-            // project.shadow.component(publication)
-            artifact sourcesJar
-            artifact javadocJar
-
+        shadow(MavenPublication) {
             pom {
               name = "ElasticSearch Job Scheduler SPI"
               packaging = "jar"
@@ -182,5 +137,22 @@ signing {
     sign publishing.publications.shadow
 }
 
-// TODO: enable
-validateNebulaPom.enabled = false
+// Due to the changes introduced in ES7.7.1,
+// https://github.com/elastic/elasticsearch/pull/56727 and https://github.com/elastic/elasticsearch/pull/57057,
+// the generation of maven poms made by ''elasticsearch.build' plugin starts to work,
+// in order to use the pom configuration in this script and avoid duplicated configuration,
+// we use this way to manually delete POM fields added by 'elasticsearch.publish' plugin
+generatePom {
+    project.pluginManager.withPlugin('com.github.johnrengelman.shadow') {
+        MavenPublication publication = publishing.publications.maybeCreate('shadow', MavenPublication)
+
+        publication.pom.withXml { xml ->
+            // reference: https://github.com/johnrengelman/shadow/blob/6.0.0/src/main/groovy/com/github/jengelman/gradle/plugins/shadow/ShadowExtension.groovy#L25
+            xml.asNode().appendNode('dependencies')
+            Node root = xml.asNode()
+            6.times {
+                root.remove(root.children()[10])
+            }
+        }
+    }
+}

@@ -34,7 +34,7 @@ dependencies {
 }
 
 testingConventions.enabled = false;
-// TODO: enable
+// no need to validate pom, as this project is not uploaded to sonatype
 validateNebulaPom.enabled = false
 
 integTest.dependsOn(rootProject.assemble)
