@@ -19,7 +19,6 @@ plugins {
     id 'jacoco'
     id 'maven-publish'
     id 'signing'
-    id "com.dorongold.task-tree" version "1.5"
 }
 apply plugin: 'elasticsearch.build'
 apply plugin: 'elasticsearch.rest-test'
@@ -139,8 +138,8 @@ signing {
 
 // Due to the changes introduced in ES7.7.1,
 // https://github.com/elastic/elasticsearch/pull/56727 and https://github.com/elastic/elasticsearch/pull/57057,
-// the generation of maven poms made by 'elasticsearch.build' plugin starts to work,
-// in order to use the pom configuration in this script and avoid duplicated configuration,
+// the generation of maven poms made by 'elasticsearch.build' plugin starts to work.
+// In order to use the pom configuration in this script and avoid duplicated configuration,
 // we use this way to manually delete POM fields added by 'elasticsearch.publish' plugin
 generatePom {
     project.pluginManager.withPlugin('com.github.johnrengelman.shadow') {
