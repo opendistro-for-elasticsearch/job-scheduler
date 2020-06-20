@@ -39,6 +39,7 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.plugins.ExtensiblePlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.FixedExecutorBuilder;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.function.Supplier;
 
 
 public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
@@ -78,7 +80,8 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
                            ResourceWatcherService resourceWatcherService, ScriptService scriptService,
                            NamedXContentRegistry xContentRegistry, Environment environment,
                            NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
-                           IndexNameExpressionResolver indexNameExpressionResolver) {
+                           IndexNameExpressionResolver indexNameExpressionResolver,
+                           Supplier<RepositoriesService>repositoriesServiceSupplier) {
         this.lockService = new LockService(client, clusterService);
         this.scheduler = new JobScheduler(threadPool, this.lockService);
         this.sweeper = initSweeper(environment.settings(), client, clusterService, threadPool, xContentRegistry,
@@ -103,7 +106,7 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
 
     @Override
     public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
-        final int processorCount = EsExecutors.numberOfProcessors(settings);
+        final int processorCount = EsExecutors.allocatedProcessors(settings);
 
         List<ExecutorBuilder<?>> executorBuilders = new ArrayList<>();
         executorBuilders.add(new FixedExecutorBuilder(settings, OPEN_DISTRO_JOB_SCHEDULER_THREAD_POOL_NAME,

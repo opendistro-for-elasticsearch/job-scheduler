@@ -13,29 +13,24 @@
  *   permissions and limitations under the License.
  */
 import com.github.jengelman.gradle.plugins.shadow.ShadowBasePlugin
+import org.elasticsearch.gradle.test.RestIntegTestTask
 
 plugins {
     id 'com.github.johnrengelman.shadow'
-    id 'java-library'
     id 'jacoco'
     id 'maven'
     id 'maven-publish'
     id 'signing'
 }
-apply plugin: 'elasticsearch.build'
-apply plugin: 'elasticsearch.rest-test'
+
+apply plugin: 'elasticsearch.java'
+apply plugin: 'elasticsearch.testclusters'
 
 ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE')
 }
-
-// checkstyleTest.ignoreFailures = true
-forbiddenApisTest.ignoreFailures = true
-dependencyLicenses.enabled = false
-testingConventions.enabled = false
-thirdPartyAudit.enabled = false
 
 jacoco {
     toolVersion = '0.8.5'
@@ -73,16 +68,33 @@ test {
         test.classpath -= project.configurations.getByName(ShadowBasePlugin.CONFIGURATION_NAME)
         test.classpath += project.extensions.getByType(SourceSetContainer).getByName(SourceSet.MAIN_SOURCE_SET_NAME).runtimeClasspath
     }
-    // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
+        // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
     systemProperty 'tests.security.manager', 'false'
 }
 
-integTestRunner {
-    systemProperty 'tests.security.manager', 'false'
+task integTest(type: RestIntegTestTask) {
+    description 'Run integ test with elasticsearch test framework'
+    group 'verification'
+    runner {
+        systemProperty 'tests.security.manager', 'false'
+    }
+    dependsOn test
 }
+check.dependsOn integTest
 
 testClusters.integTest {
     testDistribution = 'OSS'
+}
+
+task sourcesJar(type: Jar) {
+    archiveClassifier.set 'sources'
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar) {
+    archiveClassifier.set 'javadoc'
+    from javadoc.destinationDir
+    dependsOn javadoc
 }
 
 publishing {
@@ -122,7 +134,7 @@ publishing {
     repositories {
         maven {
             name = "sonatype-staging"
-            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            url "https://aws.oss.sonatype.org/service/local/staging/deploy/maven2"
             credentials {
                 username project.hasProperty('ossrhUsername') ? project.property('ossrhUsername') : ''
                 password project.hasProperty('ossrhPassword') ? project.property('ossrhPassword') : ''

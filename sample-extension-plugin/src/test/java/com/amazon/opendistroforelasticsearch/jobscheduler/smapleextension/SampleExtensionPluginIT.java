@@ -19,6 +19,7 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
+import org.elasticsearch.action.admin.cluster.node.info.PluginsAndModules;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.plugins.PluginInfo;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -34,10 +35,10 @@ public class SampleExtensionPluginIT extends ESIntegTestCase {
         Assert.assertEquals(ClusterHealthStatus.GREEN, response.getStatus());
 
         NodesInfoRequest nodesInfoRequest = new NodesInfoRequest();
-        nodesInfoRequest.plugins(true);
+        nodesInfoRequest.addMetric(NodesInfoRequest.Metric.PLUGINS.metricName());
         NodesInfoResponse nodesInfoResponse = ESIntegTestCase.client().admin().cluster().nodesInfo(nodesInfoRequest)
                 .actionGet();
-        List<PluginInfo> pluginInfos = nodesInfoResponse.getNodes().get(0).getPlugins().getPluginInfos();
+        List<PluginInfo> pluginInfos = nodesInfoResponse.getNodes().get(0).getInfo(PluginsAndModules.class).getPluginInfos();
         Assert.assertTrue(pluginInfos.stream().anyMatch(pluginInfo -> pluginInfo.getName()
                 .equals("opendistro-job-scheduler")));
         Assert.assertTrue(pluginInfos.stream().anyMatch(pluginInfo -> pluginInfo.getName()
