@@ -68,7 +68,7 @@ test {
         test.classpath -= project.configurations.getByName(ShadowBasePlugin.CONFIGURATION_NAME)
         test.classpath += project.extensions.getByType(SourceSetContainer).getByName(SourceSet.MAIN_SOURCE_SET_NAME).runtimeClasspath
     }
-        // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
+    // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
     systemProperty 'tests.security.manager', 'false'
 }
 
