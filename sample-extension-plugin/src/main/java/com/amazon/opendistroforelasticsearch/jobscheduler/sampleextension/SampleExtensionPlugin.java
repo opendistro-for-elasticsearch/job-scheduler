@@ -69,7 +69,7 @@ public class SampleExtensionPlugin extends Plugin implements ActionPlugin, JobSc
                                                NamedXContentRegistry xContentRegistry, Environment environment,
                                                NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
                                                IndexNameExpressionResolver indexNameExpressionResolver,
-                                               Supplier<RepositoriesService>repositoriesServiceSupplier) {
+                                               Supplier<RepositoriesService> repositoriesServiceSupplier) {
         SampleJobRunner jobRunner = SampleJobRunner.getJobRunnerInstance();
         jobRunner.setClusterService(clusterService);
         jobRunner.setThreadPool(threadPool);
