@@ -32,8 +32,8 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ESAllocationTestCase;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -163,19 +163,19 @@ public class JobSweeperTests extends ESAllocationTestCase {
     }
 
     public void testPostIndex() {
-        ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
+        ShardId shardId = new ShardId(new Index("index-name", IndexMetadata.INDEX_UUID_NA_VALUE), 1);
         Engine.Index index = this.getIndexOperation();
         Engine.IndexResult indexResult = new Engine.IndexResult(1L, 1L, 1L, true);
 
-        MetaData metaData = MetaData.builder()
-                .put(createIndexMetaData("index-name", 1, 3))
+        Metadata metadata = Metadata.builder()
+                .put(createIndexMetadata("index-name", 1, 3))
                 .build();
         RoutingTable routingTable = new RoutingTable.Builder()
-                .add(new IndexRoutingTable.Builder(metaData.index("index-name").getIndex())
-                        .initializeAsNew(metaData.index("index-name")).build())
+                .add(new IndexRoutingTable.Builder(metadata.index("index-name").getIndex())
+                        .initializeAsNew(metadata.index("index-name")).build())
                 .build();
         ClusterState clusterState = ClusterState.builder(new ClusterName("cluster-name"))
-                .metaData(metaData)
+                .metadata(metadata)
                 .routingTable(routingTable)
                 .build();
 
@@ -205,7 +205,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
     }
 
     public void testPostIndex_indexFailed() {
-        ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
+        ShardId shardId = new ShardId(new Index("index-name", IndexMetadata.INDEX_UUID_NA_VALUE), 1);
         Engine.Index index = this.getIndexOperation();
         Engine.IndexResult indexResult = new Engine.IndexResult(new IOException("exception"), 1L);
 
@@ -215,7 +215,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
     }
 
     public void testPostDelete() {
-        ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
+        ShardId shardId = new ShardId(new Index("index-name", IndexMetadata.INDEX_UUID_NA_VALUE), 1);
         Engine.Delete delete = this.getDeleteOperation("doc-id");
         Engine.DeleteResult deleteResult = new Engine.DeleteResult(1L, 1L, 1L, true);
 
@@ -234,7 +234,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
     }
 
     public void testPostDelete_deletionFailed() {
-        ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
+        ShardId shardId = new ShardId(new Index("index-name", IndexMetadata.INDEX_UUID_NA_VALUE), 1);
         Engine.Delete delete = this.getDeleteOperation("doc-id");
         Engine.DeleteResult deleteResult = new Engine.DeleteResult(new IOException("exception"), 1L, 1L);
 
@@ -244,7 +244,7 @@ public class JobSweeperTests extends ESAllocationTestCase {
     }
 
     public void testSweep() throws IOException {
-        ShardId shardId = new ShardId(new Index("index-name", IndexMetaData.INDEX_UUID_NA_VALUE), 1);
+        ShardId shardId = new ShardId(new Index("index-name", IndexMetadata.INDEX_UUID_NA_VALUE), 1);
 
         this.sweeper.sweep(shardId, "id", this.getTestJsonSource(), new JobDocVersion(1L, 1L, 2L));
         Mockito.verify(this.scheduler, Mockito.times(0)).schedule(Mockito.anyString(), Mockito.anyString(),
@@ -324,9 +324,9 @@ public class JobSweeperTests extends ESAllocationTestCase {
                 "}");
     }
 
-    private IndexMetaData.Builder createIndexMetaData(String indexName, int replicaNumber, int shardNumber) {
-        Settings defaultSettings = Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT).build();
-        return new IndexMetaData.Builder(indexName)
+    private IndexMetadata.Builder createIndexMetadata(String indexName, int replicaNumber, int shardNumber) {
+        Settings defaultSettings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build();
+        return new IndexMetadata.Builder(indexName)
                 .settings(defaultSettings)
                 .numberOfReplicas(replicaNumber)
                 .numberOfShards(shardNumber);
