@@ -81,7 +81,7 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
                            NamedXContentRegistry xContentRegistry, Environment environment,
                            NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
                            IndexNameExpressionResolver indexNameExpressionResolver,
-                           Supplier<RepositoriesService>repositoriesServiceSupplier) {
+                           Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.lockService = new LockService(client, clusterService);
         this.scheduler = new JobScheduler(threadPool, this.lockService);
         this.sweeper = initSweeper(environment.settings(), client, clusterService, threadPool, xContentRegistry,
