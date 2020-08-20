@@ -3,4 +3,4 @@
 Supported Elasticsearch version 7.9.0
 
 ### Maintenance
-* Adds support for Elasticsearch 7.9.0 ([#67](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/67))
+* Update JobSchedulerPlugin to conform with changes to ExtensiblePlugin interface in Elasticsearch 7.9.0 ([#67](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/67))
