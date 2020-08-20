@@ -53,7 +53,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -124,9 +123,9 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
     }
 
     @Override
-    public void reloadSPI(ClassLoader loader) {
+    public void loadExtensions(ExtensionLoader loader) {
 
-        for (JobSchedulerExtension extension : ServiceLoader.load(JobSchedulerExtension.class, loader)) {
+        for (JobSchedulerExtension extension : loader.loadExtensions(JobSchedulerExtension.class)) {
             String jobType = extension.getJobType();
             String jobIndexName = extension.getJobIndex();
             ScheduledJobParser jobParser = extension.getJobParser();
