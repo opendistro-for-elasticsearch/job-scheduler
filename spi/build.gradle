@@ -18,7 +18,6 @@ import org.elasticsearch.gradle.test.RestIntegTestTask
 plugins {
     id 'com.github.johnrengelman.shadow'
     id 'jacoco'
-    id 'maven'
     id 'maven-publish'
     id 'signing'
 }
@@ -32,20 +31,6 @@ ext {
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE')
 }
-
-jacoco {
-    toolVersion = '0.8.5'
-    reportsDir = file("$buildDir/JacocoReport")
-}
-
-jacocoTestReport {
-    reports {
-        xml.enabled false
-        csv.enabled false
-        html.destination file("${buildDir}/jacoco/")
-    }
-}
-check.dependsOn jacocoTestReport
 
 dependencies {
     compileOnly "org.elasticsearch:elasticsearch:${es_version}"
@@ -150,4 +135,3 @@ signing {
     required { gradle.taskGraph.hasTask("publishShadowPublicationToSonatype-stagingRepository") }
     sign publishing.publications.shadow
 }
-
