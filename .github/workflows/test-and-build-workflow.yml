@@ -1,11 +1,14 @@
 name: Test and Build Workflow
-# This workflow is triggered on pull requests to master or a opendistro release branch
+# This workflow is triggered on pull requests and pushes to master or an opendistro release branch
 on:
   pull_request:
     branches:
       - master
       - opendistro-*
-
+  push:
+    branches:
+      - master
+      - opendistro-*
 jobs:
   build:
     strategy:
@@ -26,6 +29,7 @@ jobs:
           java-version: ${{ matrix.java }}
       - name: Build with Gradle
         run: ./gradlew build
+      # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
       - name: Uploads coverage
         uses: codecov/codecov-action@v1
         with:
@@ -36,6 +40,7 @@ jobs:
         with:
           name: job-scheduler-plugin
           path: ./build
+      # This step uses the upload-artifact Github action: https://github.com/actions/upload-artifact
       - name: Upload Artifacts Sample Plugin
         uses: actions/upload-artifact@v1
         if: always()
