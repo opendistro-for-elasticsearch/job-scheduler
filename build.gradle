@@ -30,6 +30,7 @@ buildscript {
 plugins {
     id 'nebula.ospackage' version "8.3.0"
     id 'java-library'
+    id 'jacoco'
 }
 
 ext {
@@ -39,6 +40,7 @@ ext {
 
 apply plugin: 'elasticsearch.esplugin'
 apply plugin: 'elasticsearch.testclusters'
+apply from: 'build-tools/merged-coverage.gradle'
 
 ext {
     projectSubstitutions = [:]
