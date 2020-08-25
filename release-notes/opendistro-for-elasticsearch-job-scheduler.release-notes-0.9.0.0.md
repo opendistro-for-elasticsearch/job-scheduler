@@ -1,6 +1,6 @@
 ## 2019-04-10, version 0.9.0.0
 
-### Notable Changes
+### Features
 
 Initial release of JobScheduler plugin. Supports 2 type of schedules
 * [Unix Cron](https://en.wikipedia.org/wiki/Cron) 
