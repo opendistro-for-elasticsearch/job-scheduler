@@ -15,7 +15,7 @@
 
 buildscript {
     ext {
-        es_version = System.getProperty("es.version", "7.9.0")
+        es_version = System.getProperty("es.version", "7.9.1")
     }
 
     repositories {
