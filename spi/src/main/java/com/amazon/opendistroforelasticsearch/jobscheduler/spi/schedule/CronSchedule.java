@@ -22,6 +22,8 @@ import com.cronutils.parser.CronParser;
 import com.cronutils.utils.VisibleForTesting;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
@@ -53,6 +55,13 @@ public class CronSchedule implements Schedule {
         this.expression = expression;
         this.timezone = timezone;
         this.executionTime = ExecutionTime.forCron(cronParser.parse(this.expression));
+        clock = Clock.system(timezone);
+    }
+
+    public CronSchedule(StreamInput input) throws IOException {
+        timezone = input.readZoneId();
+        expression = input.readString();
+        executionTime = ExecutionTime.forCron(cronParser.parse(expression));
         clock = Clock.system(timezone);
     }
 
@@ -158,5 +167,11 @@ public class CronSchedule implements Schedule {
     @Override
     public int hashCode() {
         return Objects.hash(timezone, expression);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeZoneId(timezone);
+        out.writeString(expression);
     }
 }
