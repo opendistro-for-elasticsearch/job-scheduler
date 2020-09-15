@@ -78,7 +78,7 @@ public class IntervalSchedule implements Schedule {
         startTime = input.readInstant();
         interval = input.readInt();
         unit = input.readEnum(ChronoUnit.class);
-        intervalInMillis = input.readLong();
+        intervalInMillis = Duration.of(interval, unit).toMillis();
         clock = Clock.system(ZoneId.systemDefault());
     }
 
@@ -183,6 +183,5 @@ public class IntervalSchedule implements Schedule {
         out.writeInstant(startTime);
         out.writeInt(interval);
         out.writeEnum(unit);
-        out.writeLong(intervalInMillis);
     }
 }
