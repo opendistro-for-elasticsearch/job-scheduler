@@ -19,6 +19,8 @@ import com.cronutils.utils.VisibleForTesting;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
@@ -70,6 +72,14 @@ public class IntervalSchedule implements Schedule {
         this.unit = unit;
         this.intervalInMillis = Duration.of(interval, this.unit).toMillis();
         this.clock = Clock.system(ZoneId.systemDefault());
+    }
+
+    public IntervalSchedule(StreamInput input) throws IOException {
+        startTime = input.readInstant();
+        interval = input.readInt();
+        unit = input.readEnum(ChronoUnit.class);
+        intervalInMillis = Duration.of(interval, unit).toMillis();
+        clock = Clock.system(ZoneId.systemDefault());
     }
 
     @VisibleForTesting
@@ -166,5 +176,12 @@ public class IntervalSchedule implements Schedule {
     @Override
     public int hashCode() {
         return Objects.hash(startTime, interval, unit, intervalInMillis);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeInstant(startTime);
+        out.writeInt(interval);
+        out.writeEnum(unit);
     }
 }
