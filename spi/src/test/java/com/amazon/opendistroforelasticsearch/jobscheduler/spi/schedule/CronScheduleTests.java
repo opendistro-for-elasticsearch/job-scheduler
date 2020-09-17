@@ -17,6 +17,8 @@ package com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule;
 
 import com.cronutils.model.time.ExecutionTime;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.ESTestCase;
@@ -150,5 +152,13 @@ public class CronScheduleTests extends ESTestCase {
         Assert.assertEquals(cronScheduleOne, cronScheduleTwo);
         Assert.assertNotEquals(cronScheduleOne, cronScheduleThree);
         Assert.assertEquals(cronScheduleOne.hashCode(), cronScheduleTwo.hashCode());
+    }
+
+    public void testCronScheduleAsStream() throws Exception {
+        BytesStreamOutput out = new BytesStreamOutput();
+        cronSchedule.writeTo(out);
+        StreamInput input = out.bytes().streamInput();
+        CronSchedule newCronSchedule = new CronSchedule(input);
+        assertEquals(cronSchedule, newCronSchedule);
     }
 }

@@ -16,6 +16,9 @@
 package com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule;
 
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.ESTestCase;
@@ -144,5 +147,13 @@ public class IntervalScheduleTests extends ESTestCase {
         Assert.assertEquals(intervalScheduleOne, intervalScheduleTwo);
         Assert.assertNotEquals(intervalScheduleOne, intervalScheduleThree);
         Assert.assertEquals(intervalScheduleOne.hashCode(), intervalScheduleTwo.hashCode());
+    }
+
+    public void testIntervalScheduleAsStream() throws Exception {
+        BytesStreamOutput out = new BytesStreamOutput();
+        intervalSchedule.writeTo(out);
+        StreamInput input = out.bytes().streamInput();
+        IntervalSchedule newIntervalSchedule = new IntervalSchedule(input);
+        assertEquals(intervalSchedule, newIntervalSchedule);
     }
 }
