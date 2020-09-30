@@ -306,6 +306,32 @@ public final class LockService {
                 }));
     }
 
+    /**
+     * Attempt to renew a lock.
+     * It is used to give an extended valid period to a lock. The start time of the lock will be updated to
+     * the current time when the method get called, and the duration of the lock remains.
+     * It works as long as the lock is not acquired by others, and no matter if the lock is expired of not.
+     *
+     * @param lock a {@code LockModel} to be renewed.
+     * @param listener a {@code ActionListener} that has onResponse and onFailure that is used to return whether
+     *                 or not the renewal was successful
+     */
+    public void renewLock(final LockModel lock, ActionListener<Boolean> listener) {
+        if (lock == null) {
+            logger.debug("Lock is null. Nothing to renew.");
+            listener.onResponse(false);
+        } else {
+            logger.debug("Renewing lock: {}. " +
+                            "The lock was acquired or renewed on: {}, and it will be valid for another {} sec from now.",
+                    lock, lock.getLockTime(), lock.getLockDurationSeconds());
+            final LockModel lockToRenew = new LockModel(lock, getNow(), lock.getLockDurationSeconds(), false);
+            updateLock(lockToRenew, ActionListener.wrap(
+                    renewedLock -> listener.onResponse(renewedLock != null),
+                    listener::onFailure
+            ));
+        }
+    }
+
     private Instant getNow() {
         return testInstant != null ? testInstant : Instant.now();
     }
