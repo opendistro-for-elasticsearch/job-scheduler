@@ -21,6 +21,7 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobRunner
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.CronSchedule;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.Schedule;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.Scheduler;
@@ -31,11 +32,13 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(RandomizedRunner.class)
 @SuppressWarnings({"rawtypes"})
@@ -176,13 +179,67 @@ public class JobSchedulerTests extends ESTestCase {
         Mockito.verify(this.threadPool).schedule(Mockito.any(), Mockito.any(), Mockito.anyString());
     }
 
-    static ScheduledJobParameter buildScheduledJobParameter(String id, String name, Instant updateTime,
-        Instant enableTime, Schedule schedule, boolean enabled) {
-        return buildScheduledJobParameter(id, name, updateTime, enableTime, schedule, enabled, null);
+    public void testReschedule_scheduleJobwithDelay() {
+        // Declare constants
+        final long delaySeconds = 15L;
+        final long executionIntervalMinutes = 1L;
+
+        // Create a mock Schedule object
+        Schedule schedule = Mockito.mock(Schedule.class);
+        // Create a ScheduledJobParameter with delay
+        ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
+                Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), schedule, false, delaySeconds);
+        JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-index", "job-id", jobParameter);
+        jobSchedulingInfo.setDescheduled(false);
+
+        // Mock the next execution time to be 1 minute from now
+        Instant now = Instant.now();
+        Instant nextExecutionTime = now.plus(executionIntervalMinutes, ChronoUnit.MINUTES);
+        Mockito.when(schedule.getNextExecutionTime(Mockito.any())).thenReturn(nextExecutionTime);
+
+        // Set a fixed Clock object that returns the same instant
+        this.scheduler.setClock(Clock.fixed(now, ZoneId.systemDefault()));
+        // Calculate the expected duration from 'now' to the next execution time with delay
+        Long durationSeconds = executionIntervalMinutes * 60 + delaySeconds;
+
+        // Mock the creation of ScheduledCancellable
+        Scheduler.ScheduledCancellable cancellable = Mockito.mock(Scheduler.ScheduledCancellable.class);
+        Mockito.when(this.threadPool.schedule(Mockito.any(), Mockito.any(), Mockito.anyString())).thenReturn(cancellable);
+
+        Assert.assertTrue(this.scheduler.reschedule(jobParameter, jobSchedulingInfo, null, dummyVersion, jitterLimit));
+        Assert.assertEquals(cancellable, jobSchedulingInfo.getScheduledCancellable());
+        // Verify the ThreadPool.schedule() is called, and the total delay time for the job is correct
+        TimeValue expectedDuration = new TimeValue(durationSeconds, TimeUnit.SECONDS);
+        Mockito.verify(this.threadPool).schedule(Mockito.any(), Mockito.eq(expectedDuration), Mockito.anyString());
     }
 
     static ScheduledJobParameter buildScheduledJobParameter(String id, String name, Instant updateTime,
-            Instant enableTime, Schedule schedule, boolean enabled, Double jitter) {
+        Instant enableTime, Schedule schedule, boolean enabled) {
+        return buildScheduledJobParameter(id, name, updateTime, enableTime, schedule, enabled, null, null);
+    }
+
+    /**
+     * Use this constructor to build a ScheduledJobParameter with a jitter factor.
+     *
+     * @param jitter a percentage which indicates the inconsistent delay
+     */
+    static ScheduledJobParameter buildScheduledJobParameter(String id, String name, Instant updateTime,
+                                                            Instant enableTime, Schedule schedule, boolean enabled, Double jitter) {
+        return buildScheduledJobParameter(id, name, updateTime, enableTime, schedule, enabled, jitter, null);
+    }
+
+    /**
+     * Use this constructor to build a ScheduledJobParameter with a fixed delay.
+     *
+     * @param delaySeconds a fixed delay in seconds
+     */
+    static ScheduledJobParameter buildScheduledJobParameter(String id, String name, Instant updateTime,
+                                                            Instant enableTime, Schedule schedule, boolean enabled, Long delaySeconds) {
+        return buildScheduledJobParameter(id, name, updateTime, enableTime, schedule, enabled, null, delaySeconds);
+    }
+
+    static ScheduledJobParameter buildScheduledJobParameter(String id, String name, Instant updateTime,
+            Instant enableTime, Schedule schedule, boolean enabled, Double jitter, Long delaySeconds) {
         return new ScheduledJobParameter() {
             @Override
             public String getName() {
@@ -209,8 +266,14 @@ public class JobSchedulerTests extends ESTestCase {
                 return enabled;
             }
 
-            @Override public Double getJitter() {
+            @Override
+            public Double getJitter() {
                 return jitter;
+            }
+
+            @Override
+            public Long getDelaySeconds() {
+                return delaySeconds;
             }
 
             @Override

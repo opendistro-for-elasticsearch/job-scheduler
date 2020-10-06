@@ -147,6 +147,8 @@ public class JobScheduler {
         }
         Duration duration = Duration.between(this.clock.instant(), nextExecutionTime);
 
+        jobInfo.setExpectedExecutionTime(nextExecutionTime);
+
         // Too many jobs start at the same time point will bring burst. Add random jitter delay to spread out load.
         // Example, if interval is 10 minutes, jitter is 0.6, next job run will be randomly delayed by 0 to 10*0.6 minutes.
         Instant secondExecutionTimeFromNow = jobParameter.getSchedule().getNextExecutionTime(nextExecutionTime);
@@ -164,7 +166,11 @@ public class JobScheduler {
             }
         }
 
-        jobInfo.setExpectedExecutionTime(nextExecutionTime);
+        // Add the defined delay to the job execution
+        if (jobParameter.getDelaySeconds() != null) {
+            log.info("Delay: {} seconds", jobParameter.getDelaySeconds());
+            duration = duration.plusSeconds(jobParameter.getDelaySeconds());
+        }
 
         Runnable runnable = () -> {
             if (jobInfo.isDescheduled()) {

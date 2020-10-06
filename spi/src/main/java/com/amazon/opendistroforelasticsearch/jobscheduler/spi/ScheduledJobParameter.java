@@ -72,4 +72,14 @@ public interface ScheduledJobParameter extends ToXContentObject {
      * @return job execution jitter
      */
     default Double getJitter() {return null;}
+
+    /**
+     * The job will be delayed for a fixed amount of time for every execution.
+     * It's a simple way for the job to catch out or order (delayed or late) events most of the time.
+     *
+     * @return the fixed delay in seconds before the scheduled job executes. Null if there is no fixed delay.
+     */
+    default Long getDelaySeconds() {
+        return null;
+    }
 }
