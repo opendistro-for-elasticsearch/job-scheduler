@@ -454,37 +454,37 @@ public class LockServiceIT extends ESIntegTestCase {
         String uniqSuffix = "_lock_renew";
         CountDownLatch latch = new CountDownLatch(1);
         LockService lockService = new LockService(client(), this.clusterService);
-        // Set the time of LockService (the 'lockTime' of acquired locks) to a past time, so that the lock is expired when acquired.
-        lockService.setTime(Instant.now().minus(Duration.ofSeconds(LOCK_DURATION_SECONDS + LOCK_DURATION_SECONDS)));
         final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
                 lockService, JOB_INDEX_NAME + uniqSuffix, JOB_ID + uniqSuffix);
 
         lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
                 lock -> {
                     assertNotNull("Expected to successfully grab lock", lock);
-                    assertTrue("Lock should be expired", lock.isExpired());
-                    Instant lockTimeAcquired = lock.getLockTime();
-                        // Set the time of LockService back to current time.
-                        lockService.setTime(null);
-                        lockService.renewLock(lock, ActionListener.wrap(
-                                renewed -> {
-                                    assertTrue("Expected to successfully renew lock", renewed);
-                                    lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
-                                            lock2 -> {
-                                                assertNull("Expected to fail to grab lock, because the existing lock has been renewed.", lock2);
-                                                lockService.deleteLock(lock.getLockId(), ActionListener.wrap(
-                                                        deleted -> {
-                                                            assertTrue("Expected to successfully delete lock.", deleted);
-                                                            latch.countDown();
-                                                        },
-                                                        exception -> fail(exception.getMessage())
-                                                ));
-                                            },
-                                            exception -> fail(exception.getMessage())
-                                    ));
-                               },
-                               exception -> fail(exception.getMessage())
-                        ));
+                    // Set the time of LockService (the 'lockTime' of acquired locks) to a fixed time.
+                    Instant now = Instant.now();
+                    lockService.setTime(now);
+                    lockService.renewLock(lock, ActionListener.wrap(
+                            renewedLock -> {
+                                assertNotNull("Expected to successfully renew lock", renewedLock);
+                                assertEquals("lock_time is expected to be the renewal time.", now, renewedLock.getLockTime());
+                                assertEquals("lock_duration is expected to be unchanged.",
+                                        lock.getLockDurationSeconds(), renewedLock.getLockDurationSeconds());
+                                lockService.release(lock, ActionListener.wrap(
+                                        released -> {
+                                            assertTrue("Failed to release lock.", released);
+                                            lockService.deleteLock(lock.getLockId(), ActionListener.wrap(
+                                                    deleted -> {
+                                                        assertTrue("Failed to delete lock.", deleted);
+                                                        latch.countDown();
+                                                    },
+                                                    exception -> fail(exception.getMessage())
+                                            ));
+                                        },
+                                        exception -> fail(exception.getMessage())
+                                ));
+                            },
+                            exception -> fail(exception.getMessage())
+                    ));
                 },
                 exception -> fail(exception.getMessage())
         ));

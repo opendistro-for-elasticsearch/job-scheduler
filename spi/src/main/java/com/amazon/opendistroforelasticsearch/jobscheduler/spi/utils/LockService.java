@@ -313,21 +313,27 @@ public final class LockService {
      * It works as long as the lock is not acquired by others, and no matter if the lock is expired of not.
      *
      * @param lock a {@code LockModel} to be renewed.
-     * @param listener a {@code ActionListener} that has onResponse and onFailure that is used to return whether
-     *                 or not the renewal was successful
+     * @param listener a {@code ActionListener} that has onResponse and onFailure that is used to
+     *                 return the renewed lock if renewal succeed, otherwise return null.
      */
-    public void renewLock(final LockModel lock, ActionListener<Boolean> listener) {
+    public void renewLock(final LockModel lock, ActionListener<LockModel> listener) {
         if (lock == null) {
             logger.debug("Lock is null. Nothing to renew.");
-            listener.onResponse(false);
+            listener.onResponse(null);
         } else {
-            logger.debug("Renewing lock: {}. " +
-                            "The lock was acquired or renewed on: {}, and it will be valid for another {} sec from now.",
+            logger.debug("Renewing lock: {}. The lock was acquired or renewed on: {}, and the duration was {} sec.",
                     lock, lock.getLockTime(), lock.getLockDurationSeconds());
             final LockModel lockToRenew = new LockModel(lock, getNow(), lock.getLockDurationSeconds(), false);
             updateLock(lockToRenew, ActionListener.wrap(
-                    renewedLock -> listener.onResponse(renewedLock != null),
-                    listener::onFailure
+                    renewedLock -> {
+                        logger.debug("Renewed lock: {}. It is supposed to be valid for another {} sec from {}.",
+                                renewedLock, renewedLock.getLockDurationSeconds(), renewedLock.getLockTime());
+                        listener.onResponse(renewedLock);
+                    },
+                    exception -> {
+                        logger.debug("Failed to renew lock: {}.", lock);
+                        listener.onFailure(exception);
+                    }
             ));
         }
     }
