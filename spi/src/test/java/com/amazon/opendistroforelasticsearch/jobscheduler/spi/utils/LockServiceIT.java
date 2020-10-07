@@ -449,4 +449,45 @@ public class LockServiceIT extends ESIntegTestCase {
         ));
         assertTrue("Test timed out - possibly leaked into other tests", latch.await(30L, TimeUnit.SECONDS));
     }
+
+    public void testRenewLock() throws Exception {
+        String uniqSuffix = "_lock_renew";
+        CountDownLatch latch = new CountDownLatch(1);
+        LockService lockService = new LockService(client(), this.clusterService);
+        final JobExecutionContext context = new JobExecutionContext(Instant.now(), new JobDocVersion(0, 0, 0),
+                lockService, JOB_INDEX_NAME + uniqSuffix, JOB_ID + uniqSuffix);
+
+        lockService.acquireLock(TEST_SCHEDULED_JOB_PARAM, context, ActionListener.wrap(
+                lock -> {
+                    assertNotNull("Expected to successfully grab lock", lock);
+                    // Set the time of LockService (the 'lockTime' of acquired locks) to a fixed time.
+                    Instant now = Instant.now();
+                    lockService.setTime(now);
+                    lockService.renewLock(lock, ActionListener.wrap(
+                            renewedLock -> {
+                                assertNotNull("Expected to successfully renew lock", renewedLock);
+                                assertEquals("lock_time is expected to be the renewal time.", now, renewedLock.getLockTime());
+                                assertEquals("lock_duration is expected to be unchanged.",
+                                        lock.getLockDurationSeconds(), renewedLock.getLockDurationSeconds());
+                                lockService.release(lock, ActionListener.wrap(
+                                        released -> {
+                                            assertTrue("Failed to release lock.", released);
+                                            lockService.deleteLock(lock.getLockId(), ActionListener.wrap(
+                                                    deleted -> {
+                                                        assertTrue("Failed to delete lock.", deleted);
+                                                        latch.countDown();
+                                                    },
+                                                    exception -> fail(exception.getMessage())
+                                            ));
+                                        },
+                                        exception -> fail(exception.getMessage())
+                                ));
+                            },
+                            exception -> fail(exception.getMessage())
+                    ));
+                },
+                exception -> fail(exception.getMessage())
+        ));
+        latch.await(5L, TimeUnit.SECONDS);
+    }
 }
