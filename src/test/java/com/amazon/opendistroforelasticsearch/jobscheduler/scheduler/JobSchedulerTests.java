@@ -180,11 +180,8 @@ public class JobSchedulerTests extends ESTestCase {
     }
 
     public void testReschedule_scheduleJobwithDelay() {
-        // Declare constants
-        final long delaySeconds = 15L;
-        final long executionIntervalMinutes = 1L;
+        final long delaySeconds = 90;
 
-        // Create a mock Schedule object
         Schedule schedule = Mockito.mock(Schedule.class);
         // Create a ScheduledJobParameter with delay
         ScheduledJobParameter jobParameter = buildScheduledJobParameter("job-id", "dummy job name",
@@ -192,17 +189,20 @@ public class JobSchedulerTests extends ESTestCase {
         JobSchedulingInfo jobSchedulingInfo = new JobSchedulingInfo("job-index", "job-id", jobParameter);
         jobSchedulingInfo.setDescheduled(false);
 
-        // Mock the next execution time to be 1 minute from now
+        // Mock the time interval for the job executions.
+        // The interval for the 1st and 2nd executions is 2 minutes, and 1 minutes for the 3rd and 4th executions.
         Instant now = Instant.now();
-        Instant nextExecutionTime = now.plus(executionIntervalMinutes, ChronoUnit.MINUTES);
-        Mockito.when(schedule.getNextExecutionTime(Mockito.any())).thenReturn(nextExecutionTime);
+        Mockito.when(schedule.getNextExecutionTime(Mockito.any()))
+                .thenReturn(now.plus(1, ChronoUnit.MINUTES))
+                .thenReturn(now.plus(3, ChronoUnit.MINUTES))
+                .thenReturn(now.plus(1, ChronoUnit.MINUTES))
+                .thenReturn(now.plus(2, ChronoUnit.MINUTES));
 
         // Set a fixed Clock object that returns the same instant
         this.scheduler.setClock(Clock.fixed(now, ZoneId.systemDefault()));
         // Calculate the expected duration from 'now' to the next execution time with delay
-        Long durationSeconds = executionIntervalMinutes * 60 + delaySeconds;
+        long durationSeconds = 60 + delaySeconds;
 
-        // Mock the creation of ScheduledCancellable
         Scheduler.ScheduledCancellable cancellable = Mockito.mock(Scheduler.ScheduledCancellable.class);
         Mockito.when(this.threadPool.schedule(Mockito.any(), Mockito.any(), Mockito.anyString())).thenReturn(cancellable);
 
@@ -211,6 +211,15 @@ public class JobSchedulerTests extends ESTestCase {
         // Verify the ThreadPool.schedule() is called, and the total delay time for the job is correct
         TimeValue expectedDuration = new TimeValue(durationSeconds, TimeUnit.SECONDS);
         Mockito.verify(this.threadPool).schedule(Mockito.any(), Mockito.eq(expectedDuration), Mockito.anyString());
+
+        // Calculate the expected duration from 'now' to the next execution time with delay.
+        // The delay exceeds the time interval between the 3rd and 4th executions,
+        // so it is expected to be cut down to the same with the interval.
+        long shortenedDurationSeconds = 60 + 60;
+        Assert.assertTrue(this.scheduler.reschedule(jobParameter, jobSchedulingInfo, null, dummyVersion, jitterLimit));
+        // Verify the ThreadPool.schedule() is called, and the total delay time for the job is correct
+        TimeValue expectedShortenedDuration = new TimeValue(shortenedDurationSeconds, TimeUnit.SECONDS);
+        Mockito.verify(this.threadPool).schedule(Mockito.any(), Mockito.eq(expectedShortenedDuration), Mockito.anyString());
     }
 
     static ScheduledJobParameter buildScheduledJobParameter(String id, String name, Instant updateTime,

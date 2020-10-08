@@ -166,10 +166,20 @@ public class JobScheduler {
             }
         }
 
-        // Add the defined delay to the job execution
-        if (jobParameter.getDelaySeconds() != null) {
-            log.info("Delay: {} seconds", jobParameter.getDelaySeconds());
-            duration = duration.plusSeconds(jobParameter.getDelaySeconds());
+        // Add the predefined delay to the job execution
+        if (jobParameter.getDelaySeconds() != null && jobParameter.getDelaySeconds() > 0) {
+            Long delaySeconds = jobParameter.getDelaySeconds();
+            log.debug("A constant delay of {} seconds is set for every execution of job: {}.",
+                    delaySeconds, jobParameter.getName());
+            // The delay cannot exceed the next execution time in case the execution is skipped,
+            // if it does we will take the minimum of the two.
+            if (secondExecutionTimeFromNow != null) {
+                Duration interval = Duration.between(nextExecutionTime, secondExecutionTimeFromNow);
+                delaySeconds = Math.min(delaySeconds, interval.getSeconds());
+                log.debug("The constant delay will be cut down to {} seconds for the next execution of job {}, " +
+                        "in case the second next execution is skipped.", delaySeconds, jobParameter.getName());
+            }
+            duration = duration.plusSeconds(delaySeconds);
         }
 
         Runnable runnable = () -> {

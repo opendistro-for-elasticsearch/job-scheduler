@@ -75,7 +75,11 @@ public interface ScheduledJobParameter extends ToXContentObject {
 
     /**
      * The job will be delayed for a fixed amount of time for every execution.
-     * It's a simple way for the job to catch out or order (delayed or late) events most of the time.
+     * It will be reset to 0 if a negative number is given.
+     *
+     * The delay will be evaluated before every execution of the job,
+     * if it exceeds the time interval between the first and the second execution after the evaluation time,
+     * it will be cut down to be the same with the time interval.
      *
      * @return the fixed delay in seconds before the scheduled job executes. Null if there is no fixed delay.
      */
