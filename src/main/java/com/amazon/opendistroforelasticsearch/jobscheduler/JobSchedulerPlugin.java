@@ -15,6 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.jobscheduler;
 
+import com.amazon.opendistroforelasticsearch.jobscheduler.resthandler.RestGetJobAction;
 import com.amazon.opendistroforelasticsearch.jobscheduler.scheduler.JobScheduler;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.JobSchedulerExtension;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.ScheduledJobParser;
@@ -23,41 +24,41 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.Schedule;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.schedule.ScheduleParser;
 import com.amazon.opendistroforelasticsearch.jobscheduler.spi.utils.LockService;
 import com.amazon.opendistroforelasticsearch.jobscheduler.sweeper.JobSweeper;
+import com.amazon.opendistroforelasticsearch.jobscheduler.transport.action.GetJobAction;
+import com.amazon.opendistroforelasticsearch.jobscheduler.transport.action.TransportGetJobAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.*;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ExtensiblePlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.rest.RestController;
+import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.FixedExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.watcher.ResourceWatcherService;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 
 
-public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
+public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin, ActionPlugin {
 
     public static final String OPEN_DISTRO_JOB_SCHEDULER_THREAD_POOL_NAME = "open_distro_job_scheduler";
 
@@ -152,6 +153,22 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin {
         registryEntries.add(scheduleEntry);
 
         return registryEntries;
+    }
+
+    /**
+     * Register action and handler so that transportClient can find proxy for action
+     */
+    @Override
+    public List<ActionPlugin.ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+        return Arrays.asList(
+                new ActionPlugin.ActionHandler<>(GetJobAction.INSTANCE, TransportGetJobAction.class)
+        );
+    }
+
+    @Override
+    public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings, IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter, IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
+        RestGetJobAction restGetJobAction = new RestGetJobAction();
+        return Arrays.asList(restGetJobAction);
     }
 
     private JobSweeper initSweeper(Settings settings, Client client, ClusterService clusterService, ThreadPool threadPool,
