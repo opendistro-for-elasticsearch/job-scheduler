@@ -36,7 +36,11 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.settings.*;
+import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -54,7 +58,14 @@ import org.elasticsearch.threadpool.FixedExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.watcher.ResourceWatcherService;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 
@@ -77,11 +88,11 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin, Acti
 
     @Override
     public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
-                           ResourceWatcherService resourceWatcherService, ScriptService scriptService,
-                           NamedXContentRegistry xContentRegistry, Environment environment,
-                           NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
-                           IndexNameExpressionResolver indexNameExpressionResolver,
-                           Supplier<RepositoriesService> repositoriesServiceSupplier) {
+                                               ResourceWatcherService resourceWatcherService, ScriptService scriptService,
+                                               NamedXContentRegistry xContentRegistry, Environment environment,
+                                               NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
+                                               IndexNameExpressionResolver indexNameExpressionResolver,
+                                               Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.lockService = new LockService(client, clusterService);
         this.scheduler = new JobScheduler(threadPool, this.lockService);
         this.sweeper = initSweeper(environment.settings(), client, clusterService, threadPool, xContentRegistry,
@@ -89,7 +100,8 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin, Acti
         clusterService.addListener(this.sweeper);
         clusterService.addLifecycleListener(this.sweeper);
 
-        return Collections.emptyList();
+        //return Collections.emptyList();
+        return Arrays.asList(scheduler);
     }
 
     @Override
@@ -166,7 +178,10 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin, Acti
     }
 
     @Override
-    public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings, IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter, IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
+    public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
+                                             IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
+                                             IndexNameExpressionResolver indexNameExpressionResolver,
+                                             Supplier<DiscoveryNodes> nodesInCluster) {
         RestGetJobAction restGetJobAction = new RestGetJobAction();
         return Arrays.asList(restGetJobAction);
     }

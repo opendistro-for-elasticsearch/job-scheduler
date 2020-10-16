@@ -5,7 +5,6 @@ import com.amazon.opendistroforelasticsearch.jobscheduler.transport.action.GetJo
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.action.RestActions;
 import org.elasticsearch.rest.action.RestToXContentListener;
 
 import java.util.Arrays;

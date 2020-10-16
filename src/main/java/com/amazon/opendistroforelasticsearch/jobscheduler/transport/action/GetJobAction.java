@@ -16,7 +16,6 @@
 package com.amazon.opendistroforelasticsearch.jobscheduler.transport.action;
 
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.common.io.stream.Writeable;
 
 public class GetJobAction extends ActionType<GetJobResponse> {
 
@@ -27,8 +26,4 @@ public class GetJobAction extends ActionType<GetJobResponse> {
         super(NAME, GetJobResponse::new);
     }
 
-//    @Override
-//    public Writeable.Reader<GetJobResponse> getResponseReader() {
-//        return GetJobResponse::new;
-//    }
 }
