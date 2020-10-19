@@ -182,7 +182,7 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin, Acti
                                              IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
                                              IndexNameExpressionResolver indexNameExpressionResolver,
                                              Supplier<DiscoveryNodes> nodesInCluster) {
-        RestGetJobAction restGetJobAction = new RestGetJobAction();
+        RestGetJobAction restGetJobAction = new RestGetJobAction(indicesToListen);
         return Arrays.asList(restGetJobAction);
     }
 

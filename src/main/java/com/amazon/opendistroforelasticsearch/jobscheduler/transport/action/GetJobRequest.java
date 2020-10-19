@@ -1,18 +1,18 @@
 package com.amazon.opendistroforelasticsearch.jobscheduler.transport.action;
 
-import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.support.nodes.BaseNodesRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class GetJobRequest extends ActionRequest {
+public class GetJobRequest extends BaseNodesRequest<GetJobRequest> {
 
     String indexName;
 
-    public GetJobRequest(String indexName) {
-        super();
+    public GetJobRequest(String indexName, String... nodesIds) {
+        super(nodesIds);
         this.indexName = indexName;
     }
 

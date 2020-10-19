@@ -70,6 +70,10 @@ public class JobScheduler {
         return this.scheduledJobInfo.getJobsByIndex(indexName).keySet();
     }
 
+    public JobSchedulingInfo getJobInfo(String indexName, String jobId) {
+        return this.scheduledJobInfo.getJobInfo(indexName, jobId);
+    }
+
     public boolean schedule(String indexName, String docId, ScheduledJobParameter scheduledJobParameter,
                             ScheduledJobRunner jobRunner, JobDocVersion version, Double jitterLimit) {
         if (!scheduledJobParameter.isEnabled()) {
