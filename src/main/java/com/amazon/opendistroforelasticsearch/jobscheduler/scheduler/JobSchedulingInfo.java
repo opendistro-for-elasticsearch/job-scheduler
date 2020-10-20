@@ -20,7 +20,7 @@ import org.elasticsearch.threadpool.Scheduler;
 
 import java.time.Instant;
 
-public class JobSchedulingInfo {
+class JobSchedulingInfo {
 
     private String indexName;
     private String jobId;

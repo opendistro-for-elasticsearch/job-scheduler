@@ -9,11 +9,7 @@ import java.io.IOException;
 public class GetJobNodeRequest extends BaseNodeRequest {
 
     private GetJobRequest request;
-    public String indexName;
-
-    public GetJobNodeRequest() {
-        super();
-    }
+    private String indexName;
 
     public GetJobNodeRequest(StreamInput in) throws IOException {
         super(in);
@@ -24,7 +20,11 @@ public class GetJobNodeRequest extends BaseNodeRequest {
     public GetJobNodeRequest(GetJobRequest request) {
         super();
         this.request = request;
-        this.indexName = request.indexName;
+        this.indexName = request.getIndexName();
+    }
+
+    public String getIndexName() {
+        return indexName;
     }
 
     @Override

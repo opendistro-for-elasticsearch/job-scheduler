@@ -72,6 +72,7 @@ import java.util.function.Supplier;
 public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin, ActionPlugin {
 
     public static final String OPEN_DISTRO_JOB_SCHEDULER_THREAD_POOL_NAME = "open_distro_job_scheduler";
+    public static final String JOB_SCHEDULER_BASE_URI = "/_opendistro/_jobscheduler";
 
     private static final Logger log = LogManager.getLogger(JobSchedulerPlugin.class);
 

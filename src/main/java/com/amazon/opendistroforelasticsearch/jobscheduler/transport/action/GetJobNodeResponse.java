@@ -1,5 +1,6 @@
 package com.amazon.opendistroforelasticsearch.jobscheduler.transport.action;
 
+import com.amazon.opendistroforelasticsearch.jobscheduler.scheduler.JobSchedulerMetrics;
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -8,37 +9,41 @@ import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
-import java.util.Map;
 
 public class GetJobNodeResponse extends BaseNodeResponse implements ToXContentFragment {
 
-    private Map<String, Object> jobInfoMap;
+    private JobSchedulerMetrics[] jobInfos;
 
     public GetJobNodeResponse(StreamInput in) throws IOException {
         super(in);
-        this.jobInfoMap = in.readMap(StreamInput::readString, StreamInput::readGenericValue);
+        this.jobInfos = in.readOptionalArray(JobSchedulerMetrics::new, JobSchedulerMetrics[]::new);
     }
 
-    public GetJobNodeResponse(DiscoveryNode node, Map<String, Object> jobInfoMap) {
+    public GetJobNodeResponse(DiscoveryNode node, JobSchedulerMetrics[] jobInfos) {
         super(node);
-        this.jobInfoMap = jobInfoMap;
+        this.jobInfos = jobInfos;
     }
 
     public static GetJobNodeResponse readJobInfo(StreamInput in) throws IOException {
-        GetJobNodeResponse jobInfo = new GetJobNodeResponse(in);
-        return jobInfo;
+        return new GetJobNodeResponse(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeMap(jobInfoMap, StreamOutput::writeString, StreamOutput::writeGenericValue);
+        out.writeOptionalArray(jobInfos);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        for(String jobId: jobInfoMap.keySet()) {
-            builder.field(jobId, jobInfoMap.get(jobId));
+        if (jobInfos != null) {
+            builder.startObject("jobs_info");
+            for (JobSchedulerMetrics job : jobInfos) {
+                builder.startObject(job.getScheduledJobId());
+                job.toXContent(builder, params);
+                builder.endObject();
+            }
+            builder.endObject();
         }
         return builder;
     }

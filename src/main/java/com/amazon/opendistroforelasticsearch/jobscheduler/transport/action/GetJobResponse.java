@@ -19,12 +19,10 @@ public class GetJobResponse extends BaseNodesResponse<GetJobNodeResponse> implem
 
     public GetJobResponse(StreamInput in) throws IOException {
         super(in);
-        //in.readString(); // id
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        //out.writeString(id);
+    public void writeTo(StreamOutput out){
     }
 
     @Override

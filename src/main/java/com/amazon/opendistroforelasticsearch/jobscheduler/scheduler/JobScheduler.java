@@ -37,6 +37,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Components that handles job scheduling/descheduling.
@@ -68,10 +69,6 @@ public class JobScheduler {
 
     public Set<String> getScheduledJobIds(String indexName) {
         return this.scheduledJobInfo.getJobsByIndex(indexName).keySet();
-    }
-
-    public JobSchedulingInfo getJobInfo(String indexName, String jobId) {
-        return this.scheduledJobInfo.getJobInfo(indexName, jobId);
     }
 
     public boolean schedule(String indexName, String docId, ScheduledJobParameter scheduledJobParameter,
@@ -197,4 +194,17 @@ public class JobScheduler {
         return true;
     }
 
+    public List<JobSchedulerMetrics> getJobSchedulerMetrics(String indexName) {
+        return this.scheduledJobInfo.getJobsByIndex(indexName).entrySet().stream()
+                .map(entry -> {
+                    Instant lastExecutionTime = entry.getValue().getActualPreviousExecutionTime();
+                    Instant nextExecutionTime = entry.getValue().getExpectedExecutionTime();
+                    return new JobSchedulerMetrics(
+                            entry.getValue().getJobId(),
+                            lastExecutionTime == null ? null : lastExecutionTime.toEpochMilli(),
+                            nextExecutionTime == null ? null : nextExecutionTime.toEpochMilli(),
+                            entry.getValue().getScheduledCancellable().getDelay(TimeUnit.MILLISECONDS));
+                })
+                .collect(Collectors.toList());
+    }
 }

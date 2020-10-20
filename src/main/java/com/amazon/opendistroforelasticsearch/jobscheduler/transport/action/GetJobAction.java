@@ -25,5 +25,4 @@ public class GetJobAction extends ActionType<GetJobResponse> {
     private GetJobAction() {
         super(NAME, GetJobResponse::new);
     }
-
 }
