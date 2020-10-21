@@ -101,7 +101,6 @@ public class JobSchedulerPlugin extends Plugin implements ExtensiblePlugin, Acti
         clusterService.addListener(this.sweeper);
         clusterService.addLifecycleListener(this.sweeper);
 
-        //return Collections.emptyList();
         return Arrays.asList(scheduler);
     }
 
