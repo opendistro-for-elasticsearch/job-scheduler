@@ -53,7 +53,8 @@ public class RestGetJobAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         String[] nodesIds = Strings.splitStringByCommaToArray(request.param("nodeId"));
-        GetJobRequest getJobRequest = new GetJobRequest(indicesToListen.iterator().next(), nodesIds);
+        String[] jobIndexNames = new String[indicesToListen.size()];
+        GetJobRequest getJobRequest = new GetJobRequest(indicesToListen.toArray(jobIndexNames), nodesIds);
         return channel -> client.execute(GetJobAction.INSTANCE, getJobRequest, new RestActions.NodesResponseRestListener<>(channel));
     }
 }

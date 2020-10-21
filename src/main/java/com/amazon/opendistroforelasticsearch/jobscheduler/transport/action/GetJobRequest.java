@@ -24,20 +24,20 @@ import java.io.IOException;
 
 public class GetJobRequest extends BaseNodesRequest<GetJobRequest> {
 
-    private String indexName;
+    private String[] jobIndexNames;
 
-    public GetJobRequest(String indexName, String... nodesIds) {
+    public GetJobRequest(String[] jobIndexNames, String... nodesIds) {
         super(nodesIds);
-        this.indexName = indexName;
+        this.jobIndexNames = jobIndexNames;
     }
 
     public GetJobRequest(StreamInput in) throws IOException {
         super(in);
-        indexName = in.readString();
+        jobIndexNames = in.readStringArray();
     }
 
-    public String getIndexName() {
-        return indexName;
+    public String[] getJobIndexNames() {
+        return jobIndexNames;
     }
 
     @Override
@@ -48,6 +48,6 @@ public class GetJobRequest extends BaseNodesRequest<GetJobRequest> {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(indexName);
+        out.writeStringArray(jobIndexNames);
     }
 }

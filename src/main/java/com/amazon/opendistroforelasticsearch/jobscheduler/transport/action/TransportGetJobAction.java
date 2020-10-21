@@ -27,7 +27,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TransportGetJobAction extends TransportNodesAction<GetJobRequest, GetJobResponse, GetJobNodeRequest, GetJobNodeResponse> {
 
@@ -58,8 +60,10 @@ public class TransportGetJobAction extends TransportNodesAction<GetJobRequest, G
 
     @Override
     protected GetJobNodeResponse nodeOperation(GetJobNodeRequest request) {
-        List<JobSchedulerMetrics> jobSchedulerMetrics = this.scheduler.getJobSchedulerMetrics(request.getIndexName());
-        JobSchedulerMetrics[] jobInfos = new JobSchedulerMetrics[jobSchedulerMetrics.size()];
-        return new GetJobNodeResponse(clusterService.localNode(), jobSchedulerMetrics.toArray(jobInfos), request.getIndexName());
+        Map<String, List<JobSchedulerMetrics>> jobInfoMap = new HashMap<>();
+        for(String jobIndexName: request.getJobIndexNames()) {
+            jobInfoMap.put(jobIndexName, this.scheduler.getJobSchedulerMetrics(jobIndexName));
+        }
+        return new GetJobNodeResponse(clusterService.localNode(), jobInfoMap);
     }
 }
