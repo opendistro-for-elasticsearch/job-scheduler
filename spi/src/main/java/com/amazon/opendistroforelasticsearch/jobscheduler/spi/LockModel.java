@@ -109,7 +109,7 @@ public final class LockModel implements ToXContentObject {
         Long lockDurationSecond = null;
         Boolean released = null;
 
-        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser::getTokenLocation);
+        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
         while (!XContentParser.Token.END_OBJECT.equals(parser.nextToken())) {
             String fieldName = parser.currentName();
             parser.nextToken();

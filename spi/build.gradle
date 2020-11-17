@@ -25,6 +25,7 @@ plugins {
 
 apply plugin: 'elasticsearch.java'
 apply plugin: 'elasticsearch.testclusters'
+apply plugin: 'elasticsearch.java-rest-test'
 
 ext {
     projectSubstitutions = [:]
@@ -75,14 +76,12 @@ test {
 task integTest(type: RestIntegTestTask) {
     description 'Run integ test with elasticsearch test framework'
     group 'verification'
-    runner {
-        systemProperty 'tests.security.manager', 'false'
-    }
+    systemProperty 'tests.security.manager', 'false'
     dependsOn test
 }
 check.dependsOn integTest
 
-testClusters.integTest {
+testClusters.javaRestTest {
     testDistribution = 'OSS'
 }
 
