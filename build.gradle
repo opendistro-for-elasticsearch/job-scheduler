@@ -15,7 +15,7 @@
 
 buildscript {
     ext {
-        es_version = System.getProperty("es.version", "7.9.1")
+        es_version = System.getProperty("es.version", "7.10.0")
     }
 
     repositories {
@@ -39,6 +39,7 @@ ext {
 
 apply plugin: 'elasticsearch.esplugin'
 apply plugin: 'elasticsearch.testclusters'
+apply plugin: 'elasticsearch.java-rest-test'
 
 ext {
     projectSubstitutions = [:]
@@ -55,6 +56,7 @@ dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
 forbiddenApisTest.ignoreFailures = true
 validateNebulaPom.enabled = false
+loggerUsageCheck.enabled = false
 
 esplugin {
     name 'opendistro-job-scheduler'
@@ -62,13 +64,13 @@ esplugin {
     classname 'com.amazon.opendistroforelasticsearch.jobscheduler.JobSchedulerPlugin'
 }
 
-testClusters.integTest {
-    testDistribution = 'OSS'
-}
-
-integTest.runner {
+javaRestTest {
     // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
     systemProperty 'tests.security.manager', 'false'
+}
+
+testClusters.javaRestTest {
+    testDistribution = 'OSS'
 }
 
 allprojects {
@@ -89,6 +91,7 @@ allprojects {
 
 dependencies {
     compile project(path: ":${rootProject.name}-spi", configuration: 'shadow')
+    javaRestTestImplementation project.sourceSets.main.runtimeClasspath
 }
 
 // RPM & Debian build

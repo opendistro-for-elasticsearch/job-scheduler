@@ -29,7 +29,7 @@ import java.util.Locale;
  */
 public class ScheduleParser {
     public static Schedule parse(XContentParser parser) throws IOException {
-        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser::getTokenLocation);
+        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
 
         while(!XContentParser.Token.END_OBJECT.equals(parser.nextToken())) {
             String fieldName = parser.currentName();
@@ -52,7 +52,7 @@ public class ScheduleParser {
                         }
                     }
                     XContentParserUtils.ensureExpectedToken(XContentParser.Token.END_OBJECT, parser.currentToken(),
-                            parser::getTokenLocation);
+                            parser);
                     parser.nextToken();
                     return new CronSchedule(expression, timezone);
                 case IntervalSchedule.INTERVAL_FIELD:
@@ -78,7 +78,7 @@ public class ScheduleParser {
                         }
                     }
                     XContentParserUtils.ensureExpectedToken(XContentParser.Token.END_OBJECT, parser.currentToken(),
-                            parser::getTokenLocation);
+                            parser);
                     parser.nextToken();
                     return new IntervalSchedule(startTime, period, unit);
                 default:
