@@ -15,6 +15,7 @@
 
 apply plugin: 'elasticsearch.esplugin'
 apply plugin: 'elasticsearch.testclusters'
+apply plugin: 'elasticsearch.java-rest-test'
 
 esplugin {
     name 'opendistro-job-scheduler-sample-extension'
@@ -35,16 +36,15 @@ dependencies {
 
 licenseHeaders.enabled = false
 validateNebulaPom.enabled = false
-testingConventions.enabled = false;
+testingConventions.enabled = false
+loggerUsageCheck.enabled = false
 
-integTest.dependsOn(rootProject.assemble)
-integTestRunner {
+javaRestTest.dependsOn(rootProject.assemble)
+javaRestTest {
     systemProperty 'tests.security.manager', 'false'
 }
-testClusters.integTest {
+testClusters.javaRestTest {
     testDistribution = 'OSS'
-    // need to install job-scheduler first, need to assemble job-scheduler first
-    plugin file("${rootProject.getBuildDir()}/distributions/${rootProject.getName()}-${project.getVersion()}.zip")
 }
 
 // As of ES 7.7 the sample-extension-plugin is being added to the list of plugins for the testCluster during build before
@@ -53,7 +53,7 @@ testClusters.integTest {
 // Will need to do a deep dive to find out exactly what task adds the sample-extension-plugin and add job-scheduler there but a temporary hack is to
 // reorder the plugins list after evaluation but prior to task execution when the plugins are installed.
 afterEvaluate {
-    testClusters.integTest.nodes.each { node ->
+    testClusters.javaRestTest.nodes.each { node ->
         def plugins = node.plugins
         def firstPlugin = plugins.get(0)
         if (firstPlugin.provider == project.bundlePlugin.archiveFile) {
