@@ -1,12 +1,9 @@
 name: Release workflow
 # This workflow is triggered on creating tags to master or an opendistro release branch
 on:
-  # push:
-  #   tags:
-  #     - 'v*'
   push:
-    branches:
-      - "release-workflow-patch"
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -74,53 +71,53 @@ jobs:
           echo "Copying ${deb} to ${s3_prefix}${deb_outfile}"
           aws s3 cp --quiet $deb ${s3_prefix}${deb_outfile}
 
-      # # Creating release draft
-      # - name: Create Github Draft Release
-      #   id: create_release
-      #   uses: actions/create-release@v1.0.0
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     tag_name: ${{ github.ref }}
-      #     release_name: Release ${{ env.TAG_VERSION }}
-      #     draft: true
-      #     prerelease: false
+      # Creating release draft
+      - name: Create Github Draft Release
+        id: create_release
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ env.TAG_VERSION }}
+          draft: true
+          prerelease: false
 
-      # # Upload the release with .zip as asset
-      # - name: Upload Release Asset
-      #   uses: actions/upload-release-asset@v1.0.1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-      #     asset_name: job-scheduler-artifacts.zip
-      #     asset_path: job-scheduler-artifacts_zip
-      #     asset_content_type: application/zip
+      # Upload the release with .zip as asset
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: job-scheduler-artifacts.zip
+          asset_path: job-scheduler-artifacts_zip
+          asset_content_type: application/zip
 
-      # # Upload the release with .rpm as asset
-      # - name: Upload Release Asset
-      #   uses: actions/upload-release-asset@v1.0.1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-      #     asset_name: job-scheduler-artifacts.rpm
-      #     asset_path: job-scheduler-artifacts_rpm
-      #     asset_content_type: application/zip
+      # Upload the release with .rpm as asset
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: job-scheduler-artifacts.rpm
+          asset_path: job-scheduler-artifacts_rpm
+          asset_content_type: application/zip
 
-      # # Upload the release with .deb as asset
-      # - name: Upload Release Asset
-      #   uses: actions/upload-release-asset@v1.0.1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-      #     asset_name: job-scheduler-artifacts.deb
-      #     asset_path: job-scheduler-artifacts_deb
-      #     asset_content_type: application/zip
+      # Upload the release with .deb as asset
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: job-scheduler-artifacts.deb
+          asset_path: job-scheduler-artifacts_deb
+          asset_content_type: application/zip
 
-      # - name: Upload Workflow Artifacts
-      #   uses: actions/upload-artifact@v1
-      #   with:
-      #     name: job-scheduler-plugin
-      #     path: job-scheduler-artifacts
+      - name: Upload Workflow Artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: job-scheduler-plugin
+          path: job-scheduler-artifacts
