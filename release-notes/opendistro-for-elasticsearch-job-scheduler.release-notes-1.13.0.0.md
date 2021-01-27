@@ -3,7 +3,7 @@
 Compatible with Elasticsearch 7.10.2
 
 ### Maintenance
-* Support Elasticsearch 7.10.2 ([#82](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/82))
+* Support Elasticsearch 7.10.2 ([#86](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/86))
 
 ### Infrastructure
 * Update release-workflow.yml ([#83](https://github.com/opendistro-for-elasticsearch/job-scheduler/pull/83))
