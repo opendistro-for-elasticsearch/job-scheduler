@@ -1,0 +1,67 @@
+/*
+ *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License").
+ *   You may not use this file except in compliance with the License.
+ *   A copy of the License is located at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   or in the "license" file accompanying this file. This file is distributed
+ *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *   express or implied. See the License for the specific language governing
+ *   permissions and limitations under the License.
+ */
+
+allprojects {
+    plugins.withId('jacoco') {
+        jacoco.toolVersion = '0.8.5'
+        // For some reason this dependency isn't getting setup automatically by the jacoco plugin
+        tasks.withType(JacocoReport) { 
+            dependsOn tasks.withType(Test)
+        }
+    }
+}
+
+task jacocoMerge(type: JacocoMerge) {
+    description = 'Gathers code coverage for all projects by merging the execution data files'
+
+    gradle.projectsEvaluated {
+        // collect code coverage of the sub-projects
+        subprojects.each {
+            jacocoMerge.dependsOn it.tasks.withType(JacocoReport)
+            jacocoMerge.executionData it.tasks.withType(JacocoReport).collect { it.executionData }
+        }
+        // collect code coverage of the root project
+        // analyze coverage for the root project before merging
+        jacocoMerge.dependsOn jacocoTestReport
+        // add the execution data file of the root project to be used during coverage analysis.
+        executionData jacocoTestReport.executionData
+    }
+    doFirst {
+        executionData = files(executionData.findAll { it.exists() })
+    }
+}
+
+task jacocoReport(type: JacocoReport, group: 'verification') {
+    description = 'Generates an aggregate report from all projects'
+    dependsOn jacocoMerge
+    executionData jacocoMerge.destinationFile
+
+    reports {
+        html.enabled = true // human readable
+        xml.enabled = true
+    }
+
+    gradle.projectsEvaluated {
+        // coverage data is being reported for all source dirs
+        getSourceDirectories().from(files(allprojects.sourceSets.main.allSource.srcDirs))
+        // coverage data is being reported for all class dirs except the classes for "sample-extension-plugin"
+        getClassDirectories().from(files(allprojects.sourceSets.main.output))
+        getClassDirectories().setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: '**/sampleextension/**')
+        }))
+    }
+}
+
+check.dependsOn jacocoReport

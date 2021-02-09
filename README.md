@@ -1,3 +1,8 @@
+[![Test Workflow](https://github.com/opendistro-for-elasticsearch/job-scheduler/workflows/Test%20and%20Build%20Workflow/badge.svg)](https://github.com/opendistro-for-elasticsearch/job-scheduler/actions)
+[![codecov](https://codecov.io/gh/opendistro-for-elasticsearch/job-scheduler/branch/master/graph/badge.svg)](https://codecov.io/gh/opendistro-for-elasticsearch/job-scheduler)
+![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
+
+
 # Open Distro for Elasticsearch Job Scheduler
 
 Open Distro for Elasticsearch JobScheduler plugin provides a framework for Elasticsearch plugin
