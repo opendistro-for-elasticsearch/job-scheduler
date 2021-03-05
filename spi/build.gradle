@@ -47,11 +47,21 @@ jacocoTestReport {
 }
 check.dependsOn jacocoTestReport
 
+repositories {
+    maven {
+        url = 's3://search-vemsarat/'
+        credentials(AwsCredentials) {
+            accessKey = System.env.AWS_ACCESS_KEY_ID ?: findProperty('aws_access_key_id')
+            secretKey = System.env.AWS_SECRET_ACCESS_KEY ?: findProperty('aws_secret_access_key')
+        }
+    }
+}
+
 dependencies {
-    compileOnly "org.elasticsearch:elasticsearch:${es_version}"
+    compileOnly "org.elasticsearch:elasticsearch:${es_version}-SNAPSHOT"
     compile "com.cronutils:cron-utils:9.1.3"
 
-    testImplementation "org.elasticsearch.test:framework:${es_version}"
+    testImplementation "org.elasticsearch.test:framework:${es_version}-SNAPSHOT"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
 }
 
